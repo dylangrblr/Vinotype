@@ -1,0 +1,43 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:mem=124GB
+#PBS -N select_variants
+#PBS -M dylang@sun.ac.za
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/2_6_select_variants.err
+#PBS -o /home/dylang/dong_reseq/logs/2_6_select_variants.out
+#PBS -l walltime=24:00:00
+
+#Load modules
+module load app/gatk/4.4.0.0
+
+#Paths --> output_gvcf passed via qsub
+base_dir="/mnt/lustre/users/dgrobler/DGROBLER"
+vcf_input="${base_dir}/concat/concat_151_250"
+output_gvcf="${vcf_input}/processed/genotype_GVCF/Vitis_genotype.vcf.gz"
+output_raw_variants="${vcf_input}/processed/raw_variants"
+ref_fasta="${base_dir}/PN_ref/T2T_ref.fasta"
+JAVA_OPTS="-Xmx124g -XX:ParallelGCThreads=2 -XX:+UseParallelGC"
+
+#Create output directory
+mkdir -p "${output_raw_variants}"
+
+#Function to subset variants
+subset_variants() {
+    local var_input="$1"
+    local var_output="$2"
+    local var_type="$3"
+    
+    gatk --java-options "${JAVA_OPTS}" SelectVariants \
+        -R "${PN_ref}" \
+        -V "${var_input}" \
+        -O "${var_output}" \
+        --select-type-to-include "${var_type}" || { echo "Failed to subset ${var_type}(s)"; exit 1; }
+}
+
+#Maybe not necessary to split SNP and InDels since the filtering process might be roughly the same
+
+#Subset SNPs
+subset_variants "${output_gvcf}" "${output_raw_variants}/Vitis_raw_snps.vcf.gz" "SNP"
+
+#Subset INDELS #--> reconsider short-read reliability
+subset_variants "${output_gvcf}" "${output_raw_variants}/Vitis_raw_indels.vcf.gz" "INDEL"

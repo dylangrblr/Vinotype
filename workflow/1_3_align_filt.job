@@ -1,0 +1,91 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=24:mem=124GB
+#PBS -N align_filt
+#PBS -M dylang@sun.ac.za
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/1_3_align_filt.err
+#PBS -o /home/dylang/dong_reseq/logs/1_3_align_filt.out
+#PBS -l walltime=8:30:00
+
+#Modules
+module load app/bwa/0.7.17
+module load app/picard/2.20.3
+module load app/Java/17.0.7.0.7-1
+module load app/samtools/1.19.2
+
+#Variables passed via qsub
+#reseq_dir="${reseq_dir}"="${base_reseq_dir}/reseq_${bin_start}_${bin_end}"
+#f1_file=$(basename "$file_f1") --> Vv_xyz_f1_filt.fq.gz
+#r2_file=$(basename "$file_r2") --> Vv_xyz_r2_filt.fq.gz
+
+#Define variables --> reseq_dir, f1_file and r2_file passed via qsub
+output_dir="${reseq_dir}/align_$(basename "${reseq_dir}" | sed 's/reseq_//')"
+index_dir="/home/dylang/PN_ref/index"
+jar_file="/apps/picard/2.20.3/picard.jar"
+
+#Create output_dir
+mkdir -p "${output_dir}"
+
+#Change to input_dir
+cd "${reseq_dir}/QC_post/filtered"
+    
+#Define the new name variable
+new_name=$(basename "${f1_file}" "_f1_filt.fq.gz")
+
+#Check input sam; run alignment
+if [ ! -s "${output_dir}/${new_name}.sam" ]; then
+	echo "Running alignment for ${new_name}"
+	bwa mem -M "${index_dir}/PN" "${f1_file}" "${r2_file}" -t 20 > "${output_dir}/${new_name}.sam" || { echo "Failed to generate alignment for ${new_name}"; exit 1; }
+else
+	echo "Alignment for ${new_name} exists"
+fi
+
+#Check sorted alignment; sort
+if [ ! -s "${output_dir}/${new_name}_sorted.sam" ]; then
+	echo "Sorting ${new_name}"
+	java -Xmx124G -jar "${jar_file}" SortSam \
+    	INPUT="${output_dir}/${new_name}.sam" \
+    	OUTPUT="${output_dir}/${new_name}_sorted.sam" \
+    	SORT_ORDER=coordinate \
+    	VALIDATION_STRINGENCY=SILENT || { echo "Failed to sort alignment for ${new_name}"; exit 1; }
+else
+	echo "Sorted alignment for ${new_name} exists"
+fi
+
+#Check removed duplicates; remove duplicates
+if [ ! -s "${output_dir}/${new_name}_filt_dp.bam" ]; then
+	echo "Mark and remove duplicates for ${new_name}"
+	java -Xmx124G -jar "${jar_file}" MarkDuplicates \
+    	INPUT="${output_dir}/${new_name}_sorted.sam" \
+   		OUTPUT="${output_dir}/${new_name}_filt_dp.bam" \
+    	METRICS_FILE="${output_dir}/${new_name}_metrics.txt" \
+    	REMOVE_DUPLICATES=true \
+    	VALIDATION_STRINGENCY=SILENT || { echo "Failed to remove duplicates for ${new_name}"; exit 1; }
+else
+	echo "Already removed duplicates for ${new_name}"
+fi
+
+#Check edited read groups
+if [ ! -s "${output_dir}/${new_name}_sorted_renamed.bam" ]; then
+	echo "Editing read groups for ${new_name}"
+	java -Xmx124G -jar "${jar_file}" AddOrReplaceReadGroups \
+    	INPUT="${output_dir}/${new_name}_filt_dp.bam" \
+    	OUTPUT="${output_dir}/${new_name}_sorted_renamed.bam" \
+    	RGPU=1 \
+    	RGID=dong \
+    	RGLB="$(basename "${reseq_dir}")" \
+    	RGPL=Illumina \
+    	RGSM="${new_name}.sam" || { echo "Failed to edit read groups for ${new_name}"; exit 1; }
+else
+	echo "Already edited read groups for ${new_name}"
+fi
+
+#Filtering and flagstats
+mkdir -p "${output_dir}/flagstat_prior" "${output_dir}/flagstat_post" "${output_dir}/filtered"
+
+samtools flagstat "${output_dir}/${new_name}_sorted_renamed.bam" > "${output_dir}/flagstat_prior/${new_name}_prior.txt" || { echo "Error: Failed to run flagstat_prior"; exit 1; }
+samtools view -b -h -f 0x2 -F 0x904 "${output_dir}/${new_name}_sorted_renamed.bam" > "${output_dir}/filtered/${new_name}.bam" || { echo "Error: Failed to run samtools view"; exit 1; }
+samtools flagstat "${output_dir}/filtered/${new_name}.bam" > "${output_dir}/flagstat_post/${new_name}_post.txt" || { echo "Error: Failed to run flagstat_post"; exit 1; }
+
+#Housekeeping: Remove intermediate files
+rm "${output_dir}/${new_name}.sam" "${output_dir}/${new_name}_sorted.sam" "${output_dir}/${new_name}_filt_dp.bam" "${output_dir}/${new_name}_sorted_renamed.bam"

@@ -1,0 +1,28 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:mem=124GB
+#PBS -N genotype_GVCF
+#PBS -M dylang@sun.ac.za
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/2_5_genotype_GVCF.err
+#PBS -o /home/dylang/dong_reseq/logs/2_5_genotype_GVCF.out
+#PBS -l walltime=144:00:00
+
+#Load modules
+module load app/gatk/4.4.0.0
+
+#Run GenotypeGVCFs
+gatk --java-options "${JAVA_OPTS}" GenotypeGVCFs \
+    -R /mnt/lustre/users/dgrobler/DGROBLER/PN_ref/T2T_ref.fasta \
+    -V gendb://"${db_input}" \
+    -O "${output_gvcf}/Vitis_genotype.vcf.gz"
+
+#Check if GenotypeGVCFs was successful
+if [[ $? -ne 0 ]]; then
+    echo "Failed to run GenotypeGVCFs"
+    exit 1
+else
+    echo "GenotypeGVCFs completed successfully, submitting SelectVariants job"
+
+    #Submit SelectVariants job
+    qsub -v base_dir="${base_dir}",output_gvcf="${output_gvcf}",PN_ref="${PN_ref}",vcf_input="${vcf_input}",JAVA_OPTS="${JAVA_OPTS}" "${select_variants}"
+fi

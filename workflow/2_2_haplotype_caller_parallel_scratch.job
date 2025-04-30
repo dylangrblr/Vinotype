@@ -1,0 +1,130 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mem=80GB
+#PBS -N haplotype_caller_parallel_scratch
+#PBS -M dylang@sun.ac.za
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/2_2_haplotype_caller_parallel_scratch.err
+#PBS -o /home/dylang/dong_reseq/logs/2_2_haplotype_caller_parallel_scratch.out
+#PBS -l walltime=6:30:00
+
+#Load necessary modules
+module load app/gatk/4.4.0.0
+module load app/samtools/1.19.2
+module load app/picard/2.20.3
+module load app/Java/17.0.7.0.7-1
+module load app/parallel/parallel
+
+#Set paths --> chr_subset passed from variant_caller.job
+JAVA_OPTS="-Xms5G -Xss512K -Xmx10G -XX:ParallelGCThreads=6 -XX:+UseParallelGC -XX:ConcGCThreads=1 -XX:NativeMemoryTracking=summary -Djava.io.tmpdir=./tmp"
+
+#Set paths and directories
+if [ -d "/scratch3" ]; then
+	temp_dir="/scratch3/dylang/$(basename ${chr_subset%.bam})/tmp"
+	echo "Writing temp files to scratch3"
+else
+	temp_dir="/scratch2/dylang/$(basename ${chr_subset%.bam})/tmp"
+	echo "Writing temp files to scratch2"
+fi
+
+#Create necessary directories
+mkdir -p "${output_dir}"
+mkdir -p "${temp_dir}"
+
+#Change to output directory
+cd "${output_dir}"
+
+#Set path to picard jar
+jar_file="/apps/picard/2.20.3/picard.jar"
+
+#Chr subset is passed for each sample
+#So, each sample is split according to chr, and this job is submitted for each chromosome
+#To fully utilize the total number of threads available, could further split each chromosome here into 4 regions hypothetically
+#Each "region" would then get 6 threads, to total to 24/job
+
+#Index BAM file if not indexed
+if [[ ! -s "${chr_subset}.bai" ]]; then
+    echo "Indexing ${chr_subset}"
+    samtools index "${chr_subset}" || { echo "Failed to index ${chr_subset}"; exit 1; }
+else
+    echo "Indexed BAM found for ${chr_subset}"
+fi
+
+#Define GATK function
+gatk_fast () {
+    gatk --java-options "${JAVA_OPTS}" HaplotypeCaller \
+        -R "${PN_ref}/T2T_ref.fasta" \
+        -I "${1}" \
+        -O "${1%.bam}.vcf.gz" \
+        --pcr-indel-model NONE \
+        -ERC GVCF \
+        --output-mode EMIT_VARIANTS_ONLY \
+        -G StandardAnnotation \
+        -G AS_StandardAnnotation \
+        -G StandardHCAnnotation
+}
+
+export -f gatk_fast
+
+#Split BAM file into 5 parts
+java -Xmx25G -jar "${jar_file}" SplitSamByNumberOfReads \
+    I="${chr_subset}" \
+    OUT_PREFIX="$(basename ${chr_subset%.bam})_part" \
+    OUTPUT="${temp_dir}" \
+    SPLIT_TO_N_FILES=5 || { echo "Failed to split ${chr_subset}"; exit 1; }
+
+#Index parts
+for i in {0001..0005}; do
+    part_file="${temp_dir}/$(basename ${chr_subset%.bam})_part_${i}.bam"
+    if [[ ! -s "${part_file}.bai" ]]; then
+        echo "Indexing ${part_file}"
+        samtools index "${part_file}" || { echo "Failed to generate index for ${part_file}"; exit 1; }
+    else
+        echo "Index for ${part_file} exists"
+    fi
+done
+
+#Check if parts exist and run GATK in parallel
+#Track failed subsets to reprocess
+#Check if parts exist and run GATK in parallel
+if [[ $(ls "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.bam | wc -l) -eq 5 ]]; then
+    echo "Creating input list for ${chr_subset%.bam}"
+    ls "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.bam > "${temp_dir}/input_list_$(basename ${chr_subset%.bam}).txt"
+    echo "Running gatk_fast for ${chr_subset%.bam}"
+
+    #Run GATK in parallel
+    parallel --halt soon,fail=1 --joblog "${temp_dir}/parallel_joblog.txt" -j 5 gatk_fast :::: "${temp_dir}/input_list_$(basename ${chr_subset%.bam}).txt" && \
+    { echo "gatk_fast for $(basename ${chr_subset%.bam}) completed; updating ${failed_subsets}";
+      sed -i "/$(basename ${chr_subset%.bam})/d" "${failed_subsets}"; }
+
+    #Check and merge VCF files
+    if [[ $(ls "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.vcf.gz | wc -l) -eq 5 ]]; then
+        ls "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.vcf.gz > "${temp_dir}/vcf_input_$(basename ${chr_subset%.bam}).list"
+        java -Xmx25G -jar "${jar_file}" MergeVcfs \
+            INPUT="${temp_dir}/vcf_input_$(basename ${chr_subset%.bam}).list" \
+            OUTPUT="${output_dir}/$(basename ${chr_subset%.bam}).vcf.gz" && \
+        { echo "MergeVCF for $(basename ${chr_subset%.bam}) completed; updating ${failed_subsets}";
+          sed -i "/$(basename ${chr_subset%.bam})/d" "${failed_subsets}"; }
+
+        #Final checks
+        if [[ -s "${output_dir}/$(basename ${chr_subset%.bam}).vcf.gz" ]]; then
+            echo "Successfully combined ${chr_subset%.bam}.vcf.gz; proceeding to housekeeping"
+            mkdir -p "${output_dir}/gvcf"
+            #Move combined gvcf
+            mv "${output_dir}/$(basename ${chr_subset%.bam}).vcf.gz" "${output_dir}/gvcf"
+            #Remove intermediate part files
+            rm "${temp_dir}/input_list_$(basename ${chr_subset%.bam}).txt" \
+               "${temp_dir}/vcf_input_$(basename ${chr_subset%.bam}).list" \
+               "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.bam \
+               "${temp_dir}/$(basename ${chr_subset%.bam})_part_"*.vcf.gz
+        else
+            echo "Failed to combine ${chr_subset%.bam}.vcf.gz"
+            exit 1
+        fi
+    else
+        echo "Failed to find all 5 VCF parts for ${chr_subset%.bam}"
+        exit 1
+    fi
+else
+    echo "Failed to find ${chr_subset%.bam} parts"
+    exit 1
+fi

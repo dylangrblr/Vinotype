@@ -1,0 +1,138 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=4:mem=124GB
+#PBS -N qc
+#PBS -M dylang@sun.ac.za  
+#PBS -q bix
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/1_2_qc.err
+#PBS -o /home/dylang/dong_reseq/logs/1_2_qc.out
+#PBS -l walltime=15:00:00
+
+##Variables passed via qsub##
+#reseq_dir="${reseq_dir}"
+#bin_file="${bin_file}"
+
+#Load modules
+module load app/fastp/0.23.4
+module load app/fastqc/0.12.1
+module load app/multiqc/1.14
+
+###fastqc_prior###
+
+#Pass each downloaded file through fastqc
+for file in "${reseq_dir}"/*.gz; do
+    fastqc "$file" --outdir="${reseq_dir}"
+    if [ $? -eq 0 ]; then
+        echo "fastqc_prior completed for $file"
+    else
+        echo "fastqc_prior failed for $file"
+    fi
+done
+
+###fastp_prior###
+
+#Pass each downloaded file-pair through fastp
+cd "${reseq_dir}"
+for f1_file in *_f1.fq.gz; do
+    r2_file="${f1_file/_f1/_r2}"
+    if [ -f "${r2_file}" ]; then
+        fastp -i "${f1_file}" -I "${r2_file}" \
+              --thread 10 --verbose --detect_adapter_for_pe \
+              --html "${f1_file%.fq.gz}_${r2_file%.fq.gz}.html"
+        if [ $? -eq 0 ]; then
+            echo "fastp_prior completed for ${f1_file} and ${r2_file}"
+        else
+            echo "fastp_prior failed for ${f1_file} and ${r2_file}; exiting"
+            exit 1
+        fi
+    else
+        echo "Reverse file not found for ${f1_file}; exiting"
+        exit 1
+    fi
+done
+echo "fastp_prior completed for all samples"
+
+###multiqc_prior###
+multiqc "${reseq_dir}" -o "${reseq_dir}" -n "$(basename "${reseq_dir}")_multiqc_prior"
+echo "multiqc_prior completed"
+
+###House keeping###
+mkdir -p "${reseq_dir}"/QC_prior
+mv "${reseq_dir}"/*.zip "${reseq_dir}"/*.html "${reseq_dir}"/*.json "${reseq_dir}"/QC_prior
+
+###Rerun fastp with additional filtering parameters; rerun fastQC and multiQC to double check quality###
+
+###fastp_post###
+#Pass each file-pair through fastp for filtering
+mkdir -p "${reseq_dir}"/QC_post
+
+for f1_file in *_f1.fq.gz; do
+    r2_file="${f1_file/_f1/_r2}"
+    if [ -f "${r2_file}" ]; then
+        fastp -i "${f1_file}" -I "${r2_file}" \
+              -o "${reseq_dir}/QC_post/${f1_file%.fq.gz}_filt.fq.gz" \
+              -O "${reseq_dir}/QC_post/${r2_file%.fq.gz}_filt.fq.gz" \
+              --thread 10 --verbose --detect_adapter_for_pe \
+              --html "${f1_file%.fq.gz}_${r2_file%.fq.gz}.html" \
+              --unqualified_percent_limit 40 --qualified_quality_phred 20 \
+              --trim_front1 15 --trim_front2 15 --length_required 100
+        if [ $? -eq 0 ]; then
+            echo "fastp_post completed for ${f1_file} and ${r2_file}"
+        else
+            echo "fastp_post failed for ${f1_file} and ${r2_file}; exiting"
+            exit 1
+        fi
+    else
+        echo "Reverse file not found for ${f1_file}; exiting"
+        exit 1
+    fi
+done
+echo "fastp_post for all samples completed"
+
+###House keeping###
+mv "${reseq_dir}"/*.html "${reseq_dir}"/*.json "${reseq_dir}"/QC_post
+
+###fastqc_post###
+
+#Pass each file through fastqc to check filtering 
+for file in "${reseq_dir}"/QC_post/*.gz; do
+    fastqc "$file" --outdir="${reseq_dir}/QC_post"
+    if [ $? -eq 0 ]; then
+        echo "fastqc_post completed for $file"
+    else
+        echo "fastqc_post failed for $file; exiting"
+        exit 1
+    fi
+done
+
+###multiqc_post###
+multiqc "${reseq_dir}"/QC_post -o "${reseq_dir}"/QC_post -n "$(basename "${reseq_dir}")_multiqc_post"
+echo "multiqc_post completed"
+
+###House keeping###
+mkdir -p "${reseq_dir}"/QC_post/filtered
+mv "${reseq_dir}"/QC_post/*.fq.gz "${reseq_dir}"/QC_post/filtered
+
+##Function to check and supplement total number of submitted jobs
+#Check current number of jobs
+check_job_count_running () {
+                qstat -u "$USER" | grep -c " R "
+}
+            
+check_job_count_queued () {
+				qstat -u "$USER" | grep -c " Q "
+}
+
+#Execute alignment script for each file-pair
+#If exceed 20 job limit; wait
+align_filt="/home/dylang/dong_reseq/workflow/1_3_align_filt.job"
+for f1_file in "${reseq_dir}/QC_post/filtered/"*_f1_filt.fq.gz; do
+    r2_file="${f1_file/_f1/_r2}"
+    while [[ "$(check_job_count_running)" -ge 15 ]] || [[ "$(check_job_count_queued)" -ge 15 ]]; do
+        echo "Waiting for job slots to become available"
+        sleep 60
+    done
+	qsub -v reseq_dir="${reseq_dir}",f1_file="$(basename "${f1_file}")",r2_file="$(basename "${r2_file}")" "${align_filt}"
+done
+
+echo "Alignment jobs submitted"

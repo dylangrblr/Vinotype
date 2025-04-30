@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:mem=40GB
+#PBS -N concat_norm_250
+#PBS -M dylang@sun.ac.za  
+#PBS -q bix
+#PBS -m abe
+#PBS -e /home/dylang/test/filtering/snp_chip_250/bcftools_final_filt.err
+#PBS -o /home/dylang/test/filtering/snp_chip_250/bcftools_final_filt.out
+#PBS -l walltime=5:00:00
+
+#Load necessary modules
+module load app/bcftools/1.19
+module load app/vcftools
+
+#Define paths
+base_dir="/home/dylang/dong_reseq/concat/concat_151_250/processed"
+output_dir="${base_dir/snps_filt_revised"
+input_vcf="${base_dir}/raw_variants/Vitis_raw_snps.vcf.gz"
+PN_ref="/home/dylang/PN_ref"
+
+mkdir -p "${output_dir}"
+cd "${output_dir}"
+
+bcftools norm -m -both --multi-overlaps 0 -f "${PN_ref}/T2T_ref.fasta" "${input_vcf}" | \
+bcftools filter -e 'SOR >= 3.5 || FS >= 50.0 || ReadPosRankSum <= -2.0 || MQRankSum <= -3.0 || QD <= 10.0 || COUNT(FORMAT/GQ <= 10) / N_SAMPLES > 0.25 || COUNT(GT[*] == "0/1" & AD[*:1] < 2) / COUNT(GT[*] == "0/1") > 0.0 || COUNT(GT[*] == "1/1" & AD[*:1] < 4) / COUNT(GT[*] == "1/1") > 0.0 || FORMAT/DP < 2 || AC < 2' | \
+bcftools norm -m +both | \
+bcftools view --max-alleles 2 | \
+vcftools --gzvcf - --recode --stdout --max-missing 0.8 | bgzip > "${output_dir}"/subset_revised_filt_6_bi_m2_maxmiss_snps.vcf.gz
+
+#######
+base_dir="/home/dylang/dong_reseq/concat/concat_151_250/processed"
+input_vcf="${base_dir}/snps_filt_revised/subset_revised_filt_6_bi_m2_maxmiss_snps.vcf.gz"

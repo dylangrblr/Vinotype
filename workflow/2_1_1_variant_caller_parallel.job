@@ -1,0 +1,106 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -N variant_caller_parallel
+#PBS -M dylang@sun.ac.za  
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/2_1_1_variant_caller_parallel.err
+#PBS -o /home/dylang/dong_reseq/logs/2_1_1_variant_caller_parallel.out
+#PBS -l walltime=45:00:00
+
+#Module load 
+module load app/samtools/1.19.2
+
+###Define functions###
+#Check current number of running jobs
+check_job_count_running() {
+    qstat -u "$USER" | grep -c " R "
+}
+
+#Check current number of jobs queued
+check_job_count_queued() {
+    qstat -u "$USER" | grep -c " Q "
+}
+
+#Base paths
+base_dir="/home/dylang"
+PN_ref="${base_dir}/PN_ref"
+haplotype_caller="${base_dir}/dong_reseq/workflow/2_2_haplotype_caller_parallel_scratch.job"
+
+###Index files###
+#T2T_ref.fasta.fai
+if [[ ! -s "${PN_ref}/T2T_ref.fasta.fai" ]]; then
+	echo "Indexing T2T_ref.fasta"
+	samtools faidx "${PN_ref}/T2T_ref.fasta" || { echo "Failed to index T2T_ref.fasta"; exit 1; }
+else
+	echo "Index for T2T_ref.fasta found"
+fi
+
+#T2T_ref.dict
+if [[ ! -s "${PN_ref}/T2T_ref.dict" ]]; then
+	echo "Creating dict for T2T_ref.fasta"
+    samtools dict "${PN_ref}/T2T_ref.fasta" -o "${PN_ref}/T2T_ref.dict" || { echo "Failed to create dict for T2T_ref.fasta"; exit 1; }
+else
+	echo "Dict for T2T_ref.fasta found"
+fi
+
+###Reseq directories to process (user_defined, although shouldn't exceed 1 bin on chpc due to job limitations)###
+total_files=20
+split_size=10
+start=3861
+end=3880
+bins=$((total_files / split_size ))
+
+###Variant calling###
+#Declare bin range
+for i in $(seq 0 $((bins - 1))); do
+	bin_start=$((start + i * split_size))
+    bin_end=$((start + (i + 1) * split_size - 1))
+    if [ $bin_end -gt $end ]; then
+        bin_end=$end
+    fi
+
+	#Input and output directories 
+	input_dir="${base_dir}/dong_reseq/reseq_${bin_start}_${bin_end}/align_${bin_start}_${bin_end}/filtered"
+	haplo_dir="${input_dir}/haplotype_caller_${bin_start}_${bin_end}"
+	failed_subsets="${haplo_dir}/failed_subsets.txt"
+	mkdir -p "${haplo_dir}"
+
+	#Index and process BAM files per bin
+    for file in "${input_dir}"/*.bam; do
+    	if [[ -s "$file" ]]; then
+            #Index BAM files if not already indexed
+        	if [[ ! -s "${file}.bai" ]]; then
+                echo "Indexing $file"
+                samtools index "$file" #|| { echo "Failed to generate index for $file"; exit 1; }
+            else
+                echo "Index for $file exists"
+            fi
+
+            #Process each BAM file by chromosome
+            chromosomes=$(samtools idxstats "$file" | cut -f1 | grep -v '*')
+            for chr in $chromosomes; do
+                output_file="${haplo_dir}/$(basename "${file%.bam}_${chr}.bam")"
+                echo "$(basename "${output_file%.bam}")" >> "${failed_subsets}"
+
+                #Extract and write per chr BAM
+                if [[ ! -s "${output_file}" ]]; then
+                    echo "Subsetting $file"
+                    samtools view -b "$file" "$chr" > "${output_file}" || { echo "Failed to subset $file"; exit 1; }
+                else
+                    echo "$file already subsetted"
+                fi
+
+                #Wait for job slots to become available
+                while [[ "$(check_job_count_running)" -ge 20 ]] || [[ "$(check_job_count_queued)" -ge 15 ]]; do
+                    echo "Waiting for job slots to become available"
+                    sleep 120
+                done
+
+                #Submit HaplotypeCaller script
+                qsub -v base_dir="${base_dir}",chr_subset="${output_file}",output_dir="${haplo_dir}",PN_ref="${PN_ref}",bin_start="${bin_start}",bin_end="${bin_end}",failed_subsets="${failed_subsets}" "${haplotype_caller}"
+            done
+        else
+            echo "No BAM files found in ${input_dir}"
+        fi
+    done
+done

@@ -1,0 +1,109 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:mem=10GB
+#PBS -N combine_genotype_gvcfs
+#PBS -M dylang@sun.ac.za
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/2_3_combine_genotype_gvcfs.err
+#PBS -o /home/dylang/dong_reseq/logs/2_3_combine_genotype_gvcfs.out
+#PBS -l walltime=24:00:00
+
+#Load modules
+module load app/gatk/4.4.0.0
+module load app/bcftools/1.19
+
+#Variables (user defined bins)
+bin_start=151
+bin_end=250
+
+#Paths
+base_dir="/home/dylang/dong_reseq"
+output_concat="${base_dir}/concat/concat_${bin_start}_${bin_end}"
+genomics_db_import="${base_dir}/workflow/2_4_genomics_db_import.job"
+
+#Create output dir
+mkdir -p "${output_concat}/processed/combined"
+
+#Check current number of jobs
+check_job_count_running () {
+                qstat -u "$USER" |	grep -c " R "
+}
+            
+check_job_count_queued () {
+				qstat -u "$USER" |	grep -c " Q "
+}
+
+#Input bins (user_input) 
+bins=("${output_concat}/gvcf_131_140"
+      "${output_concat}/gvcf_151_160"
+      "${output_concat}/gvcf_161_170"
+      "${output_concat}/gvcf_171_180"
+      "${output_concat}/gvcf_181_190"
+      "${output_concat}/gvcf_191_200"
+      "${output_concat}/gvcf_201_210"
+      "${output_concat}/gvcf_211_220"
+      "${output_concat}/gvcf_221_230"
+      "${output_concat}/gvcf_231_240"
+      "${output_concat}/gvcf_241_250")
+
+#Initialize associative array per sample
+declare -A sample_vcf_files
+
+#Collect VCF files
+for bin in "${bins[@]}"; do
+    for file in $(find "$bin" -name "*.vcf.gz"); do
+        sample=$(basename "$file" | sed 's/_chr[0-9]*\.vcf\.gz//')
+        echo "Found file for sample: $sample -> $file"
+        sample_vcf_files["$sample"]+="$file "
+    done
+done
+
+#Process each sample
+for sample in "${!sample_vcf_files[@]}"; do
+    echo "${sample_vcf_files["$sample"]}"
+
+	#Convert stored space-separated values into an array
+    read -ra vcf_files <<< "${sample_vcf_files["$sample"]}"
+
+	#Print array contents
+    declare -p vcf_files
+    
+    #Count number of VCF files
+    num_vcfs=${#vcf_files[@]}
+    echo "Processing sample: $sample, found ${num_vcfs} VCF files"
+
+    if [[ "${num_vcfs}" -eq 20 ]]; then
+        output_file="${output_concat}/processed/combined/${sample}_combined.vcf.gz"
+
+        #Check if concatenated file already exists
+        if [[ ! -s "${output_file}" ]]; then
+            echo "Concatenating VCF files for sample $sample into ${output_file}"
+
+            #Re-index each VCF file before concatenating
+            for vcf_file in "${vcf_files[@]}"; do
+                echo "Re-indexing $vcf_file"
+                bcftools index -f -t "$vcf_file"
+            done
+
+            #Concatenate the VCF files
+            bcftools concat -Oz -a -o "${output_file}" "${vcf_files[@]}"
+
+            #Check if concatenation was successful
+            if [[ -s "${output_file}" ]]; then
+                echo "Successfully concatenated ${output_file}, creating db"
+            else
+                echo "Failed to concatenate ${output_file}"
+            fi
+        else
+            echo "${output_file} already exists"
+        fi
+    else
+        echo "Failed to find 20 gvcfs for $sample: found ${num_vcfs}"
+    fi
+done
+
+#Submit db script
+while [[ "$(check_job_count_running)" -ge 10 ]] || [[ "$(check_job_count_queued)" -ge 20 ]]; do
+	echo "Waiting for job slots to become available"
+    sleep 120
+done
+qsub -v base_dir="${base_dir}",vcf_input="${output_concat}" "${genomics_db_import}"	

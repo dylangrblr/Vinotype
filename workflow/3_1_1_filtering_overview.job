@@ -1,0 +1,96 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:mem=124GB
+#PBS -N overview_variants
+#PBS -M dylang@sun.ac.za  
+#PBS -q bix
+#PBS -m abe
+#PBS -e /home/dylang/dong_reseq/logs/3_1_1_filtering_overview.err
+#PBS -o home/dylang/dong_reseq/logs/3_1_1_filtering_overview.out
+#PBS -l walltime=5:00:00
+
+#Load necessary modules
+module load app/bcftools/1.19
+module load app/R/4.3.2
+
+#Define paths
+base_dir="/home/dylang/dong_reseq/concat/concat_151_250/processed"
+input_dir="${base_dir}/raw_variants"
+vcf_file="${input_dir}/Vitis_raw_snps.vcf.gz"
+output_dir="${input_dir}/stats_variants"
+mkdir -p "${output_dir}"
+
+#Index input vcf
+bcftools index -t -f "${vcf_file}"
+
+#Function to extract annotations
+overview_variants() {
+    local vcf_input="$1"
+    local annot_type="$2"
+    filename=$(echo "${annot_type}" | sed 's/\//_/g; s/%//g; s/\[ *//g; s/\] *//g')
+
+    #Extract the annotation field
+    echo "Running: bcftools query -f '${annot_type}\n' '${vcf_input}'"
+    bcftools query -f "${annot_type}\n" "${vcf_input}" | tr ' ' '\n' > "${output_dir}/${filename}.txt"
+
+    #Check extracted file
+    if [[ -s "${output_dir}/${filename}.txt" ]]; then
+        echo "Output written to: ${output_dir}/${filename}.txt"
+    else
+        echo "Warning: No data extracted for ${annot_type}. Output file may be empty or not created."
+        exit 1
+    fi
+}
+
+#Initiate array for annotations
+declare -a annotations=("%SOR" "%FS" "%MQRankSum" "%ReadPosRankSum" "%MQ" "%QD" "%INFO/DP" "%INFO/AF" "%QUAL" "[ %DP]" "[ %GQ]")
+
+#Loop over annotations
+for annot in "${annotations[@]}"; do
+    echo "Extracting ${annot}"
+
+    #Extract annotation info
+    overview_variants "${vcf_file}" "${annot}" || { echo "Failed to extract ${annot}"; exit 1; }
+
+    #Pass the safe_filename to the R script to generate plots
+    Rscript --vanilla -e "      
+    library(ggplot2)
+
+    #Input extracted annotation info
+    df <- read.table('${output_dir}/${filename}.txt', header=FALSE)
+
+    #Change colname
+    colnames(df)[1] <- '${filename}'
+
+    #Change to numeric
+    df[[1]] <- as.numeric(df[[1]])
+
+    #Calculate summary stats 
+    summary_stats <- summary(df[[1]])
+
+    #Summary string
+    summary_string <- paste('Summary: Min =', summary_stats[1], 
+                            '1st Qu. =', summary_stats[2], 
+                            'Median =', summary_stats[3], 
+                            'Mean =', round(summary_stats[4], 2), 
+                            '3rd Qu. =', summary_stats[5], 
+                            'Max =', summary_stats[6])
+
+    #Density plot
+    p <- ggplot(df, aes_string(x='${filename}')) + 
+        geom_density(fill='#A7C7E7', colour='black', alpha=0.7) +  
+        ggtitle(paste('Density Plot for', '${filename}'),
+                subtitle = summary_string) +         
+        labs(x = '${filename}', y = 'Density') +            
+        theme_minimal(base_size = 14) +  
+        theme(
+            plot.title = element_text(face='bold', hjust = 0.5, size=16),  
+            axis.title = element_text(face='bold'),                        
+            panel.grid.major = element_line(color='grey85', size=0.3),     
+            panel.grid.minor = element_line(color='grey90', size=0.2),     
+            plot.margin = unit(c(1, 1, 1, 1), 'cm')                       
+        )
+
+    #Save the plot
+    ggsave(filename = '${output_dir}/${filename}_density_plot.png', plot = p, width = 15, height = 6, dpi = 300)
+    "
+done
