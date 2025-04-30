@@ -1,2 +1,2 @@
 # PhD-Vinotype
-A streamlined, effective computational framework geared towards the identification of sequence variants from Illumina short-read data for grapevine (Vitis spp.) 
+A streamlined computational framework geared towards the effective, large-scale identification of sequence variants from Illumina short-read data for grapevine (Vitis spp.) 
