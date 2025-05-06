@@ -1,14 +1,16 @@
 * v0 : Generated via rg "module load"
 
-# 2_4_genomics_db_import.job
+# 2_4_genomics_db_import.job - DONE
 app/gatk/4.4.0.0
 app/bcftools/1.19
 
 # 1_1_1_download_qc_align.sh
 app/parallel/parallel
 
-# 2_5_genotype_GVCF.job
+# 2_5_genotype_GVCF.job - DONE
 app/gatk/4.4.0.0
+
+picard/SplitSamByNumberOfReads - TODO
 
 # 2_2_haplotype_caller_parallel_scratch.job
 app/gatk/4.4.0.0
@@ -54,9 +56,9 @@ app/R/4.3.2
 app/bcftools/1.19
 app/bwa/0.7.17
 app/fastp/0.23.4
-app/fastqc/0.12.1
+app/fastqc/0.12.1 - DONE
 app/gatk/4.4.0.0
-app/multiqc/1.14
+app/multiqc/1.14 - DONE
 app/parallel/parallel
 app/picard/2.20.3
 app/samtools/1.19.2
