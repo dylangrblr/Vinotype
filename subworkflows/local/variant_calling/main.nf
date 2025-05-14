@@ -1,0 +1,34 @@
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+
+/*
+ * Variant calling subworkflow: BAM → GVCF → Joint Genotyping
+ * Inputs:
+ *   - ch_bam: tuple(meta, bam file)
+ *   - val_ref_fasta: reference fasta file
+ * Outputs:
+ *   - vcf_files: tuple(meta, vcf file)
+ *   - versions: version info from all modules
+ */
+
+include { GATK_HAPLOTYPECALLER } from '../../modules/gatk/haplotypecaller/main.nf'
+include { GATK_GENOTYPEGVCFS }   from '../../modules/gatk/genotypegvcfs/main.nf'
+
+workflow VARIANT_CALLING {
+    take:
+        ch_bam
+        val_ref_fasta
+
+    main:
+        // 1. HaplotypeCaller per sample
+        gvcf_out = GATK_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })
+        // 2. Joint genotyping (assume all GVCFs are merged in one call)
+        genotype_out = GATK_GENOTYPEGVCFS(gvcf_out.out.gvcf_files.map { tuple(it[0], it[1], val_ref_fasta) })
+
+        // Collect version info
+        versions = gvcf_out.out.versions.mix(genotype_out.out.versions)
+
+    emit:
+        vcf_files = genotype_out.out.vcf_files.map { tuple(it[0], it[1]) }
+        versions = versions
+}
