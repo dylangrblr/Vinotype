@@ -8,10 +8,10 @@
  *   - versions: version info from all modules
  */
 
-include { FASTP }      from '../../modules/fastp/main.nf'
-include { BWA_MEM }    from '../../modules/bwa_mem/main.nf'
-include { SAMTOOLS_SORT } from '../../modules/samtools/sort/main.nf'
-include { SAMTOOLS_INDEX } from '../../modules/samtools/index/main.nf'
+include { FASTP }      from '../../../modules/nf-core/fastp/main.nf'
+include { BWA_MEM }    from '../../../modules/nf-core/bwa/mem/main.nf'
+include { SAMTOOLS_SORT } from '../../../modules/nf-core/samtools/sort/main.nf'
+include { SAMTOOLS_INDEX } from '../../../modules/nf-core/samtools/index/main.nf'
 
 workflow REFERENCE_ALIGNMENT {
     take:

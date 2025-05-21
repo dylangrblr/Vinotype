@@ -1,5 +1,5 @@
-include { BCFTOOLS_QUERY } from '../../modules/bcftools/query/main.nf'
-include { R_PLOT_DENSITY } from '../../modules/r/plot_density/main.nf'
+include { BCFTOOLS_QUERY } from '../../../modules/nf-core/bcftools/query/main.nf'
+include { R_PLOT_DENSITY } from '../../../modules/local/utils/rplot/main.nf'
 
 workflow VARIANT_FILTERING {
     /*

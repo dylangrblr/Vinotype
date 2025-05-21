@@ -1,8 +1,8 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { FASTQC } from '../../modules/fastqc/main.nf'
-include { FASTP }  from '../../modules/fastp/main.nf'
+include { FASTQC } from '../../../modules/nf-core/fastqc/main.nf'
+include { FASTP }  from '../../../modules/nf-core/fastp/main.nf'
 
 workflow QUALITY_CONTROL {
     take:

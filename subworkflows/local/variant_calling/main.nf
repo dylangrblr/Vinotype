@@ -11,8 +11,8 @@ nextflow.enable.dsl=2
  *   - versions: version info from all modules
  */
 
-include { GATK_HAPLOTYPECALLER } from '../../modules/gatk/haplotypecaller/main.nf'
-include { GATK_GENOTYPEGVCFS }   from '../../modules/gatk/genotypegvcfs/main.nf'
+include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
+include { GATK4_GENOTYPEGVCFS }   from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
 
 workflow VARIANT_CALLING {
     take:
@@ -21,9 +21,9 @@ workflow VARIANT_CALLING {
 
     main:
         // 1. HaplotypeCaller per sample
-        gvcf_out = GATK_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })
+        gvcf_out = GATK4_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })
         // 2. Joint genotyping (assume all GVCFs are merged in one call)
-        genotype_out = GATK_GENOTYPEGVCFS(gvcf_out.out.gvcf_files.map { tuple(it[0], it[1], val_ref_fasta) })
+        genotype_out = GATK4_GENOTYPEGVCFS(gvcf_out.out.gvcf_files.map { tuple(it[0], it[1], val_ref_fasta) })
 
         // Collect version info
         versions = gvcf_out.out.versions.mix(genotype_out.out.versions)
