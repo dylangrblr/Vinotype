@@ -16,24 +16,21 @@ workflow VARIANT_FILTERING {
      */
 
     take:
-        meta
-        vcf_file
-        output_dir
-        annotations
 
     main:
-        // Create a channel of (meta, vcf_file, annotation, output_dir) for each annotation
-        ch_annot = annotations.map { annotation -> tuple(meta, vcf_file, annotation, output_dir) }
 
-        // Extract annotation values
-        bcftools_results = BCFTOOLS_QUERY(ch_annot)
+        GATK4_SELECTVARIANTS
 
-        // Plot density for each annotation
-        plot_results = R_PLOT_DENSITY(bcftools_results.out.annotation_txt.map { tuple(it[0], it[1], it[2]) })
+        BCFTOOLS_INDEX
+        R_PLOT_DENSITY
 
-        // Collect version info
-        versions = bcftools_results.out.annotation_txt.map { it[3] }
-            .mix(plot_results.out.plot_png.map { it[3] })
+
+        BCFTOOLS_NORM
+        BCFTOOLS_FILTER
+        BCFTOOLS_NORM
+        BCFTOOLS_VIEW
+        VCFTOOLS
+
 
     emit:
         plot_png = plot_results.out.plot_png.map { tuple(it[0], it[1], it[2]) }

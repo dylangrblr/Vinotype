@@ -20,13 +20,18 @@ workflow VARIANT_CALLING {
         val_ref_fasta
 
     main:
+
+
+        SAMTOOLS_FAIDX
+        SAMTOOLS_DICT
+
         // 1. HaplotypeCaller per sample
         gvcf_out = GATK4_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })
-        // 2. Joint genotyping (assume all GVCFs are merged in one call)
-        genotype_out = GATK4_GENOTYPEGVCFS(gvcf_out.out.gvcf_files.map { tuple(it[0], it[1], val_ref_fasta) })
 
-        // Collect version info
-        versions = gvcf_out.out.versions.mix(genotype_out.out.versions)
+        GATK4_HAPLOTYPECALLER
+        PICARD_SPLITSAMBYNUMBEROFREADS
+        GATK4_MERGEVCFS
+
 
     emit:
         vcf_files = genotype_out.out.vcf_files.map { tuple(it[0], it[1]) }
