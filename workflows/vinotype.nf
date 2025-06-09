@@ -3,7 +3,6 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -33,6 +32,38 @@ workflow VINOTYPE {
     )
     ch_multiqc_files  = QUALITY_CONTROL.out.fastqc_pre_reports.map { it[0] } 
     ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+
+
+    // //
+    // // SUBWORKFLOW: ALIGNMENT
+    // //
+    // REFERENCE_ALIGNMENT_WF (
+    //     ch_samplesheet
+    // )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+
+    // //
+    // // SUBWORKFLOW: VARIANT_CALLING
+    // //
+    // VARIANT_CALLING_WF (
+    //     ch_samplesheet
+    // )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+
+
+    // //
+    // // SUBWORKFLOW: JOINT_GENOTYPING
+    // //
+    // JOINT_GENOTYPING_WF (
+    //     ch_samplesheet
+    // )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
 
     //
     // Collate and save software versions

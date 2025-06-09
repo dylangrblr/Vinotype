@@ -5,7 +5,7 @@ include { FASTQC as FASTQC_PRE } from '../../../modules/nf-core/fastqc/main.nf'
 include { FASTQC as FASTQC_POST } from '../../../modules/nf-core/fastqc/main.nf'
 include { FASTP }  from '../../../modules/nf-core/fastp/main.nf'
 
-workflow QUALITY_CONTROL {
+workflow QUALITY_CONTROL_WF {
     take:
         reads_ch
 
