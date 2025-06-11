@@ -62,13 +62,13 @@ workflow {
         params.input
     )
 
-    // //
-    // // WORKFLOW: Run main workflow
-    // //
-    // DYLANGRBLR_VINOTYPE (
-    //     PIPELINE_INITIALISATION.out.samplesheet
-    // )
-    // //
+    //
+    // WORKFLOW: Run main workflow
+    //
+    DYLANGRBLR_VINOTYPE (
+        PIPELINE_INITIALISATION.out.samplesheet
+    )
+    //
     // // SUBWORKFLOW: Run completion tasks
     // //
     // PIPELINE_COMPLETION (
