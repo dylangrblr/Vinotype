@@ -77,16 +77,15 @@ workflow PIPELINE_INITIALISATION {
                     return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
                 }
         }
-        // .groupTuple()
-        // .map { samplesheet ->
-        //     validateInputSamplesheet(samplesheet)
-        // }
-        // .map {
-        //     meta, fastqs ->
-        //         return [ meta, fastqs.flatten() ]
-        // }
+        .groupTuple()
+        .map { samplesheet ->
+            validateInputSamplesheet(samplesheet)
+        }
+        .map {
+            meta, fastqs ->
+                return [ meta, fastqs.flatten() ]
+        }
         .set { ch_samplesheet }
-        .view()
 
     emit:
     samplesheet = ch_samplesheet
