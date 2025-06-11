@@ -20,7 +20,7 @@ workflow QUALITY_CONTROL_WF {
         fastqc_post = FASTQC(fastp_out.out.fastp_outputs.map { tuple(it[0], it[1]) })
 */
     emit:
-        fastqc_pre_reports = FASTQC_PRE.out.zip
+        fastqc_pre_reports_zip = FASTQC_PRE.out.zip
         versions = FASTQC_PRE.out.versions
 
 /*
