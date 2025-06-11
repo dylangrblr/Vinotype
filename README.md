@@ -12,7 +12,7 @@
 
 ## Introduction
 
-**dylangrblr/vinotype** is a bioinformatics pipeline that ...
+**dylangrblr/vinotype** is a streamlined bioinformatics pipeline geared towards the effective, large-scale identification of sequence variants from Illumina short-read data for grapevine (Vitis spp.)
 
 <!-- TODO nf-core:
    Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
