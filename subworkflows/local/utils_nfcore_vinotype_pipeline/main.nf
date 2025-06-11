@@ -86,6 +86,7 @@ workflow PIPELINE_INITIALISATION {
                 return [ meta, fastqs.flatten() ]
         }
         .set { ch_samplesheet }
+        .view()
 
     emit:
     samplesheet = ch_samplesheet
@@ -225,4 +226,3 @@ def methodsDescriptionText(mqc_methods_yaml) {
 
     return description_html.toString()
 }
-
