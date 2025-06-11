@@ -76,8 +76,7 @@ workflow PIPELINE_INITIALISATION {
                 } else {
                     return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
                 }
-        }.view()
-
+        }
         // .groupTuple()
         // .map { samplesheet ->
         //     validateInputSamplesheet(samplesheet)
@@ -86,7 +85,8 @@ workflow PIPELINE_INITIALISATION {
         //     meta, fastqs ->
         //         return [ meta, fastqs.flatten() ]
         // }
-        // .set { ch_samplesheet }
+        .set { ch_samplesheet }
+        .view()
 
     emit:
     samplesheet = ch_samplesheet
