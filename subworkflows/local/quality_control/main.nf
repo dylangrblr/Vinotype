@@ -5,7 +5,7 @@ include { FASTQC as FASTQC_PRE } from '../../../modules/nf-core/fastqc/main.nf'
 include { FASTQC as FASTQC_POST } from '../../../modules/nf-core/fastqc/main.nf'
 include { FASTP }  from '../../../modules/nf-core/fastp/main.nf'
 
-workflow QUALITY_CONTROL_WF {
+workflow QUALITY_CONTROL {
     take:
         reads_ch
 
@@ -13,15 +13,16 @@ workflow QUALITY_CONTROL_WF {
         // Run FastQC before filtering
         FASTQC_PRE(reads_ch)
 
-/*
         // Run fastp
-        fastp_out = FASTP(reads_ch, [], false, false, false)
+        FASTP(reads_ch, [], false, false, false)
+/*
         // Run FastQC after filtering
         fastqc_post = FASTQC(fastp_out.out.fastp_outputs.map { tuple(it[0], it[1]) })
 */
     emit:
         fastqc_pre_reports_zip = FASTQC_PRE.out.zip
-        versions = FASTQC_PRE.out.versions
+        fastp_json = FASTP.out.json
+        versions = FASTQC_PRE.out.versions.mix(FASTP.out.versions)
 
 /*
         fastp_outputs      = fastp_out.out.fastp_outputs
