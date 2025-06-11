@@ -12,18 +12,19 @@ include { BWA_MEM }    from '../../../modules/nf-core/bwa/mem/main.nf'
 
 workflow REFERENCE_ALIGNMENT {
     take:
+        ch_reads
 
     main:
 
-    BWA_MEM()
-    PICARD_SORTSAM()
-    PICARD_MARKDUPLICATES()
-    PICARD_ADDORREPLACEREADGROUPS()
+        BWA_MEM(ch_reads, )
+        // PICARD_SORTSAM()
+        // PICARD_MARKDUPLICATES()
+        // PICARD_ADDORREPLACEREADGROUPS()
 
-    SAMTOOLS_FLAGSTAT_PRE()
-    SAMTOOLS_VIEW()
-    SAMTOOLS_FLAGSTAT_POST()
+        // SAMTOOLS_FLAGSTAT_PRE()
+        // SAMTOOLS_VIEW()
+        // SAMTOOLS_FLAGSTAT_POST()
 
     emit:
-        versions = versions
+        versions = BWA_MEM.out.versions
 }

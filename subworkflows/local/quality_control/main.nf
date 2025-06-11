@@ -22,6 +22,7 @@ workflow QUALITY_CONTROL {
     emit:
         fastqc_pre_reports_zip = FASTQC_PRE.out.zip
         fastp_json = FASTP.out.json
+        fastp_reads = FASTP.out.reads
         versions = FASTQC_PRE.out.versions.mix(FASTP.out.versions)
 
 /*

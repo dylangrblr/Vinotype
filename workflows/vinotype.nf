@@ -35,20 +35,20 @@ workflow VINOTYPE {
     ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
 
 
-    // //
-    // // SUBWORKFLOW: ALIGNMENT
-    // //
-    // REFERENCE_ALIGNMENT_WF (
-    //     ch_samplesheet
-    // )
+    //
+    // SUBWORKFLOW: REFERENCE_ALIGNMENT
+    //
+    REFERENCE_ALIGNMENT (
+        QUALITY_CONTROL.out.fastp_reads
+    )
+    ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
 
     // //
     // // SUBWORKFLOW: VARIANT_CALLING
     // //
-    // VARIANT_CALLING_WF (
+    // VARIANT_CALLING (
     //     ch_samplesheet
     // )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
@@ -59,7 +59,7 @@ workflow VINOTYPE {
     // //
     // // SUBWORKFLOW: JOINT_GENOTYPING
     // //
-    // JOINT_GENOTYPING_WF (
+    // JOINT_GENOTYPING (
     //     ch_samplesheet
     // )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
