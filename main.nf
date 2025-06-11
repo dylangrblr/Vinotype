@@ -25,7 +25,7 @@ include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_vino
 //
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
-workflow DYLANGRBLR_VINOTYPE {
+workflow DYLANGRBLR {
 
     take:
     samplesheet // channel: samplesheet read in from --input
@@ -66,7 +66,7 @@ workflow {
     // WORKFLOW: Run main workflow
     //
 
-    DYLANGRBLR_VINOTYPE (
+    DYLANGRBLR (
         PIPELINE_INITIALISATION.out.samplesheet
     )
 
@@ -79,7 +79,7 @@ workflow {
         params.outdir,
         params.monochrome_logs,
         params.hook_url,
-        DYLANGRBLR_VINOTYPE.out.multiqc_report
+        DYLANGRBLR.out.multiqc_report
     )
 }
 
