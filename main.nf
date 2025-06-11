@@ -66,8 +66,6 @@ workflow {
     // WORKFLOW: Run main workflow
     //
 
-    PIPELINE_INITIALISATION.out.samplesheet.view()
-
     DYLANGRBLR_VINOTYPE (
         PIPELINE_INITIALISATION.out.samplesheet
     )
