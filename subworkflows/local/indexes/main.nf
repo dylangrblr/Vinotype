@@ -21,29 +21,36 @@ workflow INDEXES {
         ch_fasta
 
     main:
+        // BWA index
+        if (params.ref_bwa_index) {
+            ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_bwa_index])
+        } else {
+            BWA_INDEX(ch_fasta)
+            ch_bwa_index = BWA_INDEX.out.index
+        }
 
-        //ref_bwa_index = Channel.empty()
-        // Index reference with BWA
-        BWA_INDEX(ch_fasta)
+        // samtools faidx
+        if (params.ref_samtools_faidx) {
+            ch_faidx_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_samtools_faidx])
+        } else {
+            SAMTOOLS_FAIDX(ch_fasta.map { meta, fasta_ -> [meta, fasta_, []] }, false)
+            ch_faidx_index = SAMTOOLS_FAIDX.out.fai
+        }
 
-        //ref_samtools_faidx = Channel.empty()
-        // Index reference with samtools faidx
-        SAMTOOLS_FAIDX(ch_fasta.map { meta, fasta_ -> [meta, fasta_, []] }, false)
-        
-        //ref_samtools_dict = Channel.empty()
-        // Create sequence dictionary with samtools dict
-        SAMTOOLS_DICT(ch_fasta)
+        // samtools dict
+        if (params.ref_samtools_dict) {
+            ch_dict_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_samtools_dict])
+        } else {
+            SAMTOOLS_DICT(ch_fasta)
+            ch_dict_index = SAMTOOLS_DICT.out.dict
+        }
 
-        // Collect all index files for downstream use
-        ch_bwa_index   = BWA_INDEX.out.index
-        ch_faidx_index = SAMTOOLS_FAIDX.out.fai
-        ch_dict_index  = SAMTOOLS_DICT.out.dict
-
-        // Collect version info from all modules
+        // Collect version info only for generated outputs
         ch_versions = Channel.empty()
-        ch_versions = ch_versions.mix(BWA_INDEX.out.versions)
-        ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
-        ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
+        if (!params.ref_bwa_index)      ch_versions = ch_versions.mix(BWA_INDEX.out.versions)
+        if (!params.ref_samtools_faidx) ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
+        if (!params.ref_samtools_dict)  ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
+
 
     emit:
         bwa_index   = ch_bwa_index
