@@ -1,32 +1,98 @@
-// TODO nf-core: If in doubt look at other nf-core/subworkflows to see how we are doing things! :)
-//               https://github.com/nf-core/modules/tree/master/subworkflows
-//               You can also ask for help via your pull request or on the #subworkflows channel on the nf-core Slack workspace:
-//               https://nf-co.re/join
-// TODO nf-core: A subworkflow SHOULD import at least two modules
+/*
+ * Subworkflow: joint_genotyping
+ * Purpose: Combine per-chromosome GVCFs, normalize, reblock, import to GenomicsDB, genotype, and select variants.
+ * Inputs:
+ *   - ch_gvcf_bins: Channel emitting tuples [ sample_id, path(gvcf) ] for all bins
+ *   - ch_fasta: Channel emitting path to reference FASTA
+ *   - ch_intervals: Channel emitting path to intervals.list (optional, can be generated)
+ * Outputs:
+ *   - snp_vcf: Path to final SNP VCF
+ *   - indel_vcf: Path to final INDEL VCF
+ *   - versions: Channel with version information from all modules
+ */
 
-include { SAMTOOLS_SORT      } from '../../../modules/nf-core/samtools/sort/main'
-include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
+include { BCFTOOLS_INDEX        } from '../../../modules/nf-core/bcftools/index/main.nf'
+include { BCFTOOLS_CONCAT       } from '../../../modules/nf-core/bcftools/concat/main.nf'
+include { BCFTOOLS_NORM         } from '../../../modules/nf-core/bcftools/norm/main.nf'
+include { GATK4_REBLOCKGVCF     } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
+include { GATK4_GENOMICSDBIMPORT } from '../../../modules/nf-core/gatk4/genomicsdbimport/main.nf'
+include { GATK4_GENOTYPEGVCFS   } from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
+include { GATK4_SELECTVARIANTS  } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 
 workflow JOINT_GENOTYPING {
 
     take:
-
-    // Vitis_DB="${base_dir}/concat/Vitis_DB"
-    // sample_map="${vcf_input}/Vv_sample.map"
-    // output_norm="${vcf_input}/processed/normalised"
-    // output_reblock="${vcf_input}/processed/reblocked"
-    // output_variants="${vcf_input}/processed/raw_variants"
-    // output_gvcf="${vcf_input}/processed/genotype_GVCF"
+        ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
+        ch_fasta       // path to reference FASTA
+        ch_intervals   // path to intervals.list (optional)
 
     main:
+        // 1. Index all GVCFs
+        BCFTOOLS_INDEX(ch_gvcf_bins.map { sample, gvcf -> tuple(sample, gvcf) })
 
-    ch_versions = Channel.empty()
+        // 2. Group GVCFs by sample for concatenation
+        ch_gvcf_by_sample = BCFTOOLS_INDEX.out.tbi
+            .groupTuple(0) // group by sample_id
 
-    GATK4_GENOMICSDBIMPORT
+        // 3. Concatenate per-sample GVCFs
+        BCFTOOLS_CONCAT(
+            ch_gvcf_by_sample.map { sample, gvcf_list -> tuple(sample, gvcf_list) }
+        )
 
-    GATK4_GENOTYPEGVCFS
+        // 4. Normalize concatenated GVCFs
+        BCFTOOLS_NORM(
+            BCFTOOLS_CONCAT.out.vcf.map { sample, vcf -> tuple(sample, vcf, ch_fasta.first()) },
+            ch_fasta
+        )
 
+        // 5. Reblock GVCFs
+        GATK4_REBLOCKGVCF(
+            BCFTOOLS_NORM.out.vcf.map { sample, norm_vcf -> tuple(sample, norm_vcf, ch_fasta.first()) },
+            ch_fasta,
+            ch_samtools_faidx,
+            ch_samtools_dict,
+            [],
+            []
+        )
+
+        // 6. Create sample map for GenomicsDBImport
+        ch_sample_map = GATK4_REBLOCKGVCF.out.vcf
+            .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
+            .collectFile(name: 'Vv_sample.map', sep: '\n')
+
+        // 7. GenomicsDBImport
+        GATK4_GENOMICSDBIMPORT(
+            tuple(ch_sample_map, ch_intervals ?: Channel.value('intervals.list'), ch_fasta.first())
+        )
+
+        // 8. GenotypeGVCFs
+        GATK4_GENOTYPEGVCFS(
+            tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta.first())
+        )
+
+        // 9. SelectVariants for SNPs and INDELs
+        GATK4_SELECTVARIANTS(
+            GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'SNP') }
+        )
+        ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
+
+        GATK4_SELECTVARIANTS(
+            GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'INDEL') }
+        )
+        ch_indel_vcf = GATK4_SELECTVARIANTS.out.vcf
+
+        // Collect version info
+        ch_versions = Channel.empty()
+        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
+        ch_versions = ch_versions.mix(BCFTOOLS_CONCAT.out.versions)
+        ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
+        ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions)
+        ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
+        ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
+        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
 
     emit:
-    versions = ch_versions                     // channel: [ versions.yml ]
+        snp_vcf   = ch_snp_vcf
+        indel_vcf = ch_indel_vcf
+        versions  = ch_versions
 }
