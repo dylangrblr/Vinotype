@@ -13,9 +13,7 @@
 //
 
 
-include { BWAMEM2_INDEX            } from '../../../modules/nf-core/bwa/index/main'
-include { BWA_MEM              } from '../../../modules/nf-core/bwa/mem/main'
-
+include { BWAMEM2_MEM              } from '../../../modules/nf-core/bwamem2/mem/main'
 include { INDEXES              } from '../../local/indexes/main'
 
 // nf-core subworkflow for reference alignment
@@ -35,8 +33,8 @@ workflow REFERENCE_ALIGNMENT {
         )
 
 
-        BWA_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
-        ch_versions = ch_versions.mix(BWA_MEM.out.versions.first())
+        BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index.first(), ch_fasta.first(), false )
+        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
 
 
         // // Sort SAM files
