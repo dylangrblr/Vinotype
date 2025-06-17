@@ -88,7 +88,7 @@ workflow PIPELINE_INITIALISATION {
         .set { ch_samplesheet }
 
 
-    ch_fasta = Channel.of([[:], params.ref_fasta])
+    ch_fasta = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta])
 
     emit:
     samplesheet = ch_samplesheet

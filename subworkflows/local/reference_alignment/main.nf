@@ -13,11 +13,16 @@
 //
 
 
-include { BWAMEM2_MEM              } from '../../../modules/nf-core/bwamem2/mem/main'
-include { INDEXES              } from '../../local/indexes/main'
+include { BWAMEM2_MEM                         } from '../../../modules/nf-core/bwamem2/mem/main'
+include { PICARD_SORTSAM                      } from '../../../modules/nf-core/picard/sortsam/main'
+include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
+include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
+include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main'
+include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_PRE      } from '../../../modules/nf-core/samtools/flagstat/main'
+include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_POST      } from '../../../modules/nf-core/samtools/flagstat/main'
 
-// nf-core subworkflow for reference alignment
-include { FASTQ_ALIGN_BWA } from '../../nf-core/fastq_align_bwa/main' 
+// SUBWORKFLOWS 
+include { INDEXES              } from '../../local/indexes/main'
 
 workflow REFERENCE_ALIGNMENT {
     take:
@@ -33,89 +38,68 @@ workflow REFERENCE_ALIGNMENT {
         )
 
 
-        BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index.first(), ch_fasta.first(), false )
+        BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
         ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
 
 
-        // // Sort SAM files
-        // PICARD_SORTSAM(
-        //     BWA_MEM.out.bam,
-        //     'coordinate'
-        // )
-        // ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
+        // Sort SAM files
+        PICARD_SORTSAM(
+             BWAMEM2_MEM.out.bam,
+             'coordinate'
+        )
+        ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
 
-        // // Mark and remove duplicates
-        // PICARD_MARKDUPLICATES(
-        //     PICARD_SORTSAM.out.bam,
-        //     [],  // no reference fasta needed
-        //     []   // no reference fai needed
-        // )
-        // ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
+        // Mark and remove duplicates
+        PICARD_MARKDUPLICATES(
+            PICARD_SORTSAM.out.bam,
+            [],  // no reference fasta needed
+            []   // no reference fai needed
+        )
+        ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
 
 
+        PICARD_ADDORREPLACEREADGROUPS(
+            PICARD_MARKDUPLICATES.out.bam,
+            [[],[]], // no reference fasta needed
+            [[],[]]  // no reference fai needed
+        )
+        ch_versions = ch_versions.mix(PICARD_ADDORREPLACEREADGROUPS.out.versions.first())
+
+        // Pre-filtering flagstat
+        ch_bam_for_flagstat_pre = (PICARD_ADDORREPLACEREADGROUPS.out.bam).join(PICARD_ADDORREPLACEREADGROUPS.out.bai)
+        
+        SAMTOOLS_FLAGSTAT_PRE(
+            ch_bam_for_flagstat_pre
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_PRE.out.versions.first())
+
+
+        SAMTOOLS_VIEW(
+            ch_bam_for_flagstat_pre,
+            [[],[]], // no reference needed
+            [],      // no qname file
+            []       // no index format
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+
+        // Post-filtering flagstat
+        ch_bam_for_flagstat_post = (SAMTOOLS_VIEW.out.bam).join(SAMTOOLS_VIEW.out.bai)
+
+        
+        SAMTOOLS_FLAGSTAT_POST(
+            ch_bam_for_flagstat_post
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
+
+        // Combine flagstat reports
+        ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
+            .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
+            .map { meta, pre, post -> 
+                [meta, [pre, post]]
+            }
+    emit:
+        bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
+        flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
+        metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
+        versions = ch_versions                      // versions from all modules
 }
-
-
-//        // Add or replace read groups
-//        ch_readgroup_bam = PICARD_MARKDUPLICATES.out.bam.map { meta, bam ->
-//            def new_meta = meta.clone()
-//            new_meta.id = meta.id
-//            new_meta.sample = meta.id
-//            new_meta.library = meta.id
-//            new_meta.platform = 'Illumina'
-//            new_meta.platform_unit = '1'
-//            return [new_meta, bam]
-//        }
-//
-//        PICARD_ADDORREPLACEREADGROUPS(
-//            ch_readgroup_bam,
-//            [[],[]], // no reference fasta needed
-//            [[],[]]  // no reference fai needed
-//        )
-//        ch_versions = ch_versions.mix(PICARD_ADDORREPLACEREADGROUPS.out.versions.first())
-//
-//        // Pre-filtering flagstat
-//        ch_bam_for_flagstat_pre = PICARD_ADDORREPLACEREADGROUPS.out.bam.map { meta, bam ->
-//            [meta, bam, []]  // Add empty index channel
-//        }
-//        
-//        SAMTOOLS_FLAGSTAT_PRE(
-//            ch_bam_for_flagstat_pre
-//        )
-//        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_PRE.out.versions.first())
-//
-//        // Filter BAM files (properly paired, not unmapped, not secondary, not supplementary)
-//        ch_bam_for_view = PICARD_ADDORREPLACEREADGROUPS.out.bam.map { meta, bam ->
-//            [meta, bam, []]  // Add empty index channel
-//        }
-//        
-//        SAMTOOLS_VIEW(
-//            ch_bam_for_view,
-//            [[],[]], // no reference needed
-//            [],      // no qname file
-//            []       // no index format
-//        )
-//        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
-//
-//        // Post-filtering flagstat
-//        ch_bam_for_flagstat_post = SAMTOOLS_VIEW.out.bam.map { meta, bam ->
-//            [meta, bam, []]  // Add empty index channel
-//        }
-//        
-//        SAMTOOLS_FLAGSTAT_POST(
-//            ch_bam_for_flagstat_post
-//        )
-//        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
-//
-//        // Combine flagstat reports
-//        ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
-//            .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
-//            .map { meta, pre, post -> 
-//                [meta, [pre, post]]
-//            }
-//    emit:
-//        bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
-//        flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
-//        metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
-//        versions = ch_versions                      // versions from all modules
-//}
