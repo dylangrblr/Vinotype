@@ -13,7 +13,7 @@
 //
 
 
-include { BWA_INDEX            } from '../../../modules/nf-core/bwa/index/main'
+include { BWAMEM2_INDEX            } from '../../../modules/nf-core/bwa/index/main'
 include { BWA_MEM              } from '../../../modules/nf-core/bwa/mem/main'
 
 include { INDEXES              } from '../../local/indexes/main'

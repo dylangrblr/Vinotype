@@ -1,5 +1,6 @@
 
 include { BWA_INDEX      } from '../../../modules/nf-core/bwa/index/main'
+include { BWAMEM2_INDEX  } from '../../../modules/nf-core/bwamem2/index/main'
 include { SAMTOOLS_INDEX } from '../../../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_FAIDX } from '../../../modules/nf-core/samtools/faidx/main'
 include { SAMTOOLS_DICT  } from '../../../modules/nf-core/samtools/dict/main'
@@ -25,8 +26,8 @@ workflow INDEXES {
         if (params.ref_bwa_index) {
             ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_bwa_index])
         } else {
-            BWA_INDEX(ch_fasta)
-            ch_bwa_index = BWA_INDEX.out.index
+            BWAMEM2_INDEX(ch_fasta)
+            ch_bwa_index = BWAMEM2_INDEX.out.index
         }
 
         // samtools faidx
@@ -47,7 +48,7 @@ workflow INDEXES {
 
         // Collect version info only for generated outputs
         ch_versions = Channel.empty()
-        if (!params.ref_bwa_index)      ch_versions = ch_versions.mix(BWA_INDEX.out.versions)
+        if (!params.ref_bwa_index)      ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
         if (!params.ref_samtools_faidx) ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         if (!params.ref_samtools_dict)  ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
 
