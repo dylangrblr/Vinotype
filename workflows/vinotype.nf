@@ -22,6 +22,8 @@ workflow VINOTYPE {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    ch_fasta      // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
+
     main:
 
     ch_versions = Channel.empty()
@@ -35,14 +37,15 @@ workflow VINOTYPE {
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
     ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
 
-
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
     //
     REFERENCE_ALIGNMENT (
-        QUALITY_CONTROL.out.fastp_reads
+        ch_fasta,
+        QUALITY_CONTROL.out.fastp_reads,
+        params.bwa_index ? Channel.fromPath(params.bwa_index, checkIfExists: true) : Channel.empty()
     )
-    ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
 
 

@@ -15,19 +15,10 @@ workflow QUALITY_CONTROL {
 
         // Run fastp
         FASTP(reads_ch, [], false, false, false)
-/*
-        // Run FastQC after filtering
-        fastqc_post = FASTQC(fastp_out.out.fastp_outputs.map { tuple(it[0], it[1]) })
-*/
+
     emit:
         fastqc_pre_reports_zip = FASTQC_PRE.out.zip
         fastp_json = FASTP.out.json
         fastp_reads = FASTP.out.reads
         versions = FASTQC_PRE.out.versions.mix(FASTP.out.versions)
-
-/*
-        fastp_outputs      = fastp_out.out.fastp_outputs
-        fastqc_post_reports = fastqc_post.out.fastqc_reports
-        versions = fastqc_pre.out.versions.mix(fastp_out.out.versions, fastqc_post.out.versions)
-*/
 }
