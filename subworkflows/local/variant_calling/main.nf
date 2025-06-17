@@ -13,7 +13,7 @@ include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
 
-workflow VARIANT_CALLING_PARALLEL {
+workflow VARIANT_CALLING {
 
     take:
         ch_bam_bai      // tuple(meta, bam, bai)

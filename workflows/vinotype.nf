@@ -11,6 +11,9 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_vino
 
 include { QUALITY_CONTROL } from '../subworkflows/local/quality_control'
 include { REFERENCE_ALIGNMENT } from '../subworkflows/local/reference_alignment'
+include { VARIANT_CALLING } from '../subworkflows/local/variant_calling'
+include { JOINT_GENOTYPING } from '../subworkflows/local/joint_genotyping'
+include { VARIANT_FILTERING } from '../subworkflows/local/variant_filtering'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
