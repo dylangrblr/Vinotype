@@ -21,7 +21,7 @@ include { BCFTOOLS_QUERY      } from '../../../modules/nf-core/bcftools/query/ma
 include { BCFTOOLS_NORM       } from '../../../modules/nf-core/bcftools/norm/main.nf'
 include { BCFTOOLS_FILTER     } from '../../../modules/nf-core/bcftools/filter/main.nf'
 include { BCFTOOLS_VIEW       } from '../../../modules/nf-core/bcftools/view/main.nf'
-include { VCFTOOLS_VIEW       } from '../../../modules/nf-core/vcftools/view/main.nf'
+include { VCFTOOLS as VCFTOOLS_VIEW       } from '../../../modules/nf-core/vcftools/main.nf'
 include { R_PLOT_DENSITY      } from '../../../modules/local/utils/rplot/main.nf'
 
 workflow VARIANT_FILTERING {
@@ -50,7 +50,7 @@ workflow VARIANT_FILTERING {
         // 3. Extract annotation fields and plot distributions
         ch_annot_tasks = ch_annotations
             .combine(ch_snp_vcf_indexed)
-            .map { annotation, tuple(meta, vcf) -> tuple(meta, vcf, annotation, ch_output_dir) }
+            //.map { annotation, tuple(meta, vcf) -> tuple(meta, vcf, annotation, ch_output_dir) }
 
         BCFTOOLS_QUERY(ch_annot_tasks.map { meta, vcf, annotation, outdir -> tuple(meta, vcf, annotation) })
         ch_annotation_txt = BCFTOOLS_QUERY.out.txt
