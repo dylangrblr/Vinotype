@@ -87,8 +87,12 @@ workflow PIPELINE_INITIALISATION {
         }
         .set { ch_samplesheet }
 
+
+    ch_fasta = Channel.of([[:], params.fasta])
+
     emit:
     samplesheet = ch_samplesheet
+    fasta       = ch_fasta
     versions    = ch_versions
 }
 

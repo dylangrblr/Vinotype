@@ -29,16 +29,15 @@ workflow DYLANGRBLR {
 
     take:
     samplesheet // channel: samplesheet read in from --input
+    fasta // channel: fasta file read in from --fasta
 
     main:
-    ch_fasta = Channel.of([ [id: "ref"], params.fasta ]) // Ensure fasta is in the correct format for the workflow
-
     //
     // WORKFLOW: Run pipeline
     //
     VINOTYPE (
         samplesheet,
-        ch_fasta
+        fasta
     )
     emit:
     multiqc_report = VINOTYPE.out.multiqc_report // channel: /path/to/multiqc_report.html
@@ -69,7 +68,8 @@ workflow {
     //
 
     DYLANGRBLR (
-        PIPELINE_INITIALISATION.out.samplesheet
+        PIPELINE_INITIALISATION.out.samplesheet,
+        PIPELINE_INITIALISATION.out.fasta
     )
 
     // SUBWORKFLOW: Run completion tasks

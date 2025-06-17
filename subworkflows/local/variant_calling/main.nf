@@ -13,17 +13,18 @@ nextflow.enable.dsl=2
 
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
 include { GATK4_GENOTYPEGVCFS }   from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
+include { SAMTOOLS_FAIDX }        from '../../../modules/nf-core/samtools/faidx/main.nf'
+include { SAMTOOLS_DICT }        from '../../../modules/nf-core/samtools/dict/main.nf'
 
 workflow VARIANT_CALLING {
     take:
         ch_bam
-        val_ref_fasta
+        ch_fasta
 
     main:
 
-
-        SAMTOOLS_FAIDX
-        SAMTOOLS_DICT
+        SAMTOOLS_FAIDX(ch_fasta)
+        SAMTOOLS_DICT(ch_fasta)
 
         // 1. HaplotypeCaller per sample
         gvcf_out = GATK4_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })

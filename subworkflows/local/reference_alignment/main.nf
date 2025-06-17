@@ -12,9 +12,11 @@
 // Uncompress and prepare reference genome files
 //
 
-include { UNTAR as UNTAR_BWA_INDEX } from '../../../modules/nf-core/untar/main'
-include { UNTARFILES           } from '../../../modules/nf-core/untarfiles/main'
+
 include { BWA_INDEX            } from '../../../modules/nf-core/bwa/index/main'
+include { BWA_MEM              } from '../../../modules/nf-core/bwa/mem/main'
+
+include { INDEXES              } from '../../local/indexes/main'
 
 // nf-core subworkflow for reference alignment
 include { FASTQ_ALIGN_BWA } from '../../nf-core/fastq_align_bwa/main' 
@@ -23,47 +25,39 @@ workflow REFERENCE_ALIGNMENT {
     take:
         ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
         ch_reads    // tuple(meta, fq1, fq2)
-        ch_bwa_index // channel: [ val(meta), path(bwa_index) ] (optional, if bwa_index is provided)
 
     main:
 
         ch_versions = Channel.empty()
 
-        // Generate from scratch if required
-
-        BWA_INDEX ( ch_fasta )
-        ch_bwa_index = BWA_INDEX.out.index
-        ch_versions  = ch_versions.mix(BWA_INDEX.out.versions)
-
-
-
-        //
-        // SUBWORKFLOW: Alignment with BWA & BAM QC
-        //
-        FASTQ_ALIGN_BWA (
-            ch_reads,
-            ch_bwa_index,
-            false,
+        INDEXES (
             ch_fasta
         )
 
+
+        BWA_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
+        ch_versions = ch_versions.mix(BWA_MEM.out.versions.first())
+
+
+        // // Sort SAM files
+        // PICARD_SORTSAM(
+        //     BWA_MEM.out.bam,
+        //     'coordinate'
+        // )
+        // ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
+
+        // // Mark and remove duplicates
+        // PICARD_MARKDUPLICATES(
+        //     PICARD_SORTSAM.out.bam,
+        //     [],  // no reference fasta needed
+        //     []   // no reference fai needed
+        // )
+        // ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
+
+
 }
 
-//        // Sort SAM files
-//        PICARD_SORTSAM(
-//            BWA_MEM.out.bam,
-//            'coordinate'
-//        )
-//        ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
-//
-//        // Mark and remove duplicates
-//        PICARD_MARKDUPLICATES(
-//            PICARD_SORTSAM.out.bam,
-//            [],  // no reference fasta needed
-//            []   // no reference fai needed
-//        )
-//        ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
-//
+
 //        // Add or replace read groups
 //        ch_readgroup_bam = PICARD_MARKDUPLICATES.out.bam.map { meta, bam ->
 //            def new_meta = meta.clone()
