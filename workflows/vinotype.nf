@@ -33,12 +33,12 @@ workflow VINOTYPE {
     ch_multiqc_files = Channel.empty()
 
 
-    // QUALITY_CONTROL (
-    //     ch_samplesheet
-    // )
-    // ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
-    // ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
-    // ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+    QUALITY_CONTROL (
+        ch_samplesheet
+    )
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
 
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
@@ -47,7 +47,7 @@ workflow VINOTYPE {
 
     REFERENCE_ALIGNMENT (
         ch_fasta,
-        //QUALITY_CONTROL.out.fastp_reads
+        QUALITY_CONTROL.out.fastp_reads
     )
 
     // ch_multiqc_files = ch_multiqc_files.mix()

@@ -27,7 +27,7 @@ include { INDEXES              } from '../../local/indexes/main'
 workflow REFERENCE_ALIGNMENT {
     take:
         ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
-        //ch_reads    // tuple(meta, fq1, fq2)
+        ch_reads    // tuple(meta, fq1, fq2)
 
     main:
 
@@ -38,17 +38,18 @@ workflow REFERENCE_ALIGNMENT {
         )
 
 
-        //BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
-        //ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
+        BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
+        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
 
-        ch_test_bam = Channel.fromList([
-                [[id:"Vs_ITA27_dong", single_end:false], "/home/opc/VINOTYPE/work/3b/eab73ea3a7c182b9b747899b7595a9/Vs_ITA27_dong.bam"],
-                [[id:"Vv_D25_ORLOVI", single_end:false], "/home/opc/VINOTYPE/work/a4/8069d93e6425a45175b11f9fb1e363/Vv_D25_ORLOVI.bam"]
-            ])
+        // ch_test_bam = Channel.fromList([
+        //         [[id:"Vs_ITA27_dong", single_end:false], "/home/opc/VINOTYPE/work/3b/eab73ea3a7c182b9b747899b7595a9/Vs_ITA27_dong.bam"],
+        //         [[id:"Vv_D25_ORLOVI", single_end:false], "/home/opc/VINOTYPE/work/a4/8069d93e6425a45175b11f9fb1e363/Vv_D25_ORLOVI.bam"]
+        //     ])
+
         // Sort SAM files
         PICARD_SORTSAM(
-              //  BWAMEM2_MEM.out.bam,
-              ch_test_bam,
+              //ch_test_bam,
+              BWAMEM2_MEM.out.bam,
              'coordinate'
         )
         ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
