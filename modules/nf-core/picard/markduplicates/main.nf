@@ -3,6 +3,7 @@ process PICARD_MARKDUPLICATES {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
+    //TODO: @abhi18av update all picard containers to 2.20.3 in the environment files, as per the shell scripts
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/picard:3.3.0--hdfd78af_0' :
         'biocontainers/picard:3.3.0--hdfd78af_0' }"

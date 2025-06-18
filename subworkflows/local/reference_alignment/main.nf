@@ -27,7 +27,7 @@ include { INDEXES              } from '../../local/indexes/main'
 workflow REFERENCE_ALIGNMENT {
     take:
         ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
-        ch_reads    // tuple(meta, fq1, fq2)
+        //ch_reads    // tuple(meta, fq1, fq2)
 
     main:
 
@@ -55,21 +55,21 @@ workflow REFERENCE_ALIGNMENT {
         )
         ch_versions = ch_versions.mix(PICARD_SORTSAM.out.versions.first())
 
+
+        PICARD_ADDORREPLACEREADGROUPS(
+            PICARD_SORTSAM.out.bam,
+        )
+        ch_versions = ch_versions.mix(PICARD_ADDORREPLACEREADGROUPS.out.versions.first())
+
+
         // // Mark and remove duplicates
         // PICARD_MARKDUPLICATES(
-        //     PICARD_SORTSAM.out.bam,
-        //     [],  // no reference fasta needed
-        //     []   // no reference fai needed
+        //     PICARD_MARKDUPLICATES.out.bam,
+        //     ch_fasta,  
+        //     INDEXES.out.faidx_index 
         // )
         // ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
 
-
-        // PICARD_ADDORREPLACEREADGROUPS(
-        //     PICARD_MARKDUPLICATES.out.bam,
-        //     [[],[]], // no reference fasta needed
-        //     [[],[]]  // no reference fai needed
-        // )
-        // ch_versions = ch_versions.mix(PICARD_ADDORREPLACEREADGROUPS.out.versions.first())
 
         // // Pre-filtering flagstat
         // ch_bam_for_flagstat_pre = (PICARD_ADDORREPLACEREADGROUPS.out.bam).join(PICARD_ADDORREPLACEREADGROUPS.out.bai)
