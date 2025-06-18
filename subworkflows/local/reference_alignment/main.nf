@@ -45,8 +45,6 @@ workflow REFERENCE_ALIGNMENT {
                 [[id:"Vs_ITA27_dong", single_end:false], "/home/opc/VINOTYPE/work/3b/eab73ea3a7c182b9b747899b7595a9/Vs_ITA27_dong.bam"],
                 [[id:"Vv_D25_ORLOVI", single_end:false], "/home/opc/VINOTYPE/work/a4/8069d93e6425a45175b11f9fb1e363/Vv_D25_ORLOVI.bam"]
             ])
-
-
         // Sort SAM files
         PICARD_SORTSAM(
               //  BWAMEM2_MEM.out.bam,
@@ -62,54 +60,51 @@ workflow REFERENCE_ALIGNMENT {
         ch_versions = ch_versions.mix(PICARD_ADDORREPLACEREADGROUPS.out.versions.first())
 
 
-        // // Mark and remove duplicates
-        // PICARD_MARKDUPLICATES(
-        //     PICARD_MARKDUPLICATES.out.bam,
-        //     ch_fasta,  
-        //     INDEXES.out.faidx_index 
-        // )
-        // ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
+        // Mark and remove duplicates
+        PICARD_MARKDUPLICATES(
+            PICARD_ADDORREPLACEREADGROUPS.out.bam
+        )
+        ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
 
 
-        // // Pre-filtering flagstat
-        // ch_bam_for_flagstat_pre = (PICARD_ADDORREPLACEREADGROUPS.out.bam).join(PICARD_ADDORREPLACEREADGROUPS.out.bai)
-        
-        // SAMTOOLS_FLAGSTAT_PRE(
-        //     ch_bam_for_flagstat_pre
-        // )
-        // ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_PRE.out.versions.first())
+        // Pre-filtering flagstat
+        ch_bam_for_flagstat_pre = (PICARD_MARKDUPLICATES.out.bam).join(PICARD_MARKDUPLICATES.out.bai)
+        SAMTOOLS_FLAGSTAT_PRE(
+            ch_bam_for_flagstat_pre
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_PRE.out.versions.first())
 
 
-        // SAMTOOLS_VIEW(
-        //     ch_bam_for_flagstat_pre,
-        //     [[],[]], // no reference needed
-        //     [],      // no qname file
-        //     []       // no index format
-        // )
-        // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+        SAMTOOLS_VIEW(
+            ch_bam_for_flagstat_pre,
+            [[],[]], // no reference needed
+            [],      // no qname file
+            []       // no index format
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
 
-        // // Post-filtering flagstat
-        // ch_bam_for_flagstat_post = (SAMTOOLS_VIEW.out.bam).join(SAMTOOLS_VIEW.out.bai)
+        // Post-filtering flagstat
+        ch_bam_for_flagstat_post = (SAMTOOLS_VIEW.out.bam).join(SAMTOOLS_VIEW.out.bai)
 
         
-        // SAMTOOLS_FLAGSTAT_POST(
-        //     ch_bam_for_flagstat_post
-        // )
-        // ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
+        SAMTOOLS_FLAGSTAT_POST(
+            ch_bam_for_flagstat_post
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
 
-        // // Combine flagstat reports
-        // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
-        //     .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
-        //     .map { meta, pre, post -> 
-        //         [meta, [pre, post]]
-        //     }
+        // Combine flagstat reports
+        ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
+            .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
+            .map { meta, pre, post -> 
+                [meta, [pre, post]]
+            }
 
-//    emit:
+   emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
-        // flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
         // metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
-        // bwa_index =  INDEXES.out.bwa_index
-        // dict_index =  INDEXES.out.dict_index
-        // faidx_index = INDEXES.out.faidx_index
-//        versions = ch_versions                      // versions from all modules
+        flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
+        bwa_index =  INDEXES.out.bwa_index
+        dict_index =  INDEXES.out.dict_index
+        faidx_index = INDEXES.out.faidx_index
+        versions = ch_versions                      // versions from all modules
 }
