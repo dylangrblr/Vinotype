@@ -14,6 +14,7 @@ process SAMTOOLS_VIEW {
     val index_format
 
     output:
+    tuple val(meta), path("${prefix}.bam"), path("${prefix}.bai"),             emit: bam_bai,          optional: true
     tuple val(meta), path("${prefix}.bam"),                                    emit: bam,              optional: true
     tuple val(meta), path("${prefix}.cram"),                                   emit: cram,             optional: true
     tuple val(meta), path("${prefix}.sam"),                                    emit: sam,              optional: true

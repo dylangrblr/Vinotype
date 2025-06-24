@@ -84,26 +84,25 @@ workflow REFERENCE_ALIGNMENT {
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
 
-        // Post-filtering flagstat
-        ch_bam_for_flagstat_post = (SAMTOOLS_VIEW.out.bam).join(SAMTOOLS_VIEW.out.bai)
-
         
-        SAMTOOLS_FLAGSTAT_POST(
-            ch_bam_for_flagstat_post
-        )
-        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
-
-        // Combine flagstat reports
-        ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
-            .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
-            .map { meta, pre, post -> 
-                [meta, [pre, post]]
-            }
+        //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
+        // ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
+        // SAMTOOLS_FLAGSTAT_POST(
+        //     ch_bam_for_flagstat_post
+        // )
+        // ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
+        // // Combine flagstat reports
+        // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
+        //     .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
+        //     .map { meta, pre, post -> 
+        //         [meta, [pre, post]]
+        //     }
+        // ch_flagstat_combined.dump(tag: 'ch_flagstat_combined')
 
    emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
         // metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
-        flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
+        //flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
         bwa_index =  INDEXES.out.bwa_index
         dict_index =  INDEXES.out.dict_index
         faidx_index = INDEXES.out.faidx_index
