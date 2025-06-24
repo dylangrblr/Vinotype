@@ -68,6 +68,7 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
     emit:
-        // gvcf_files = GATK4_HAPLOTYPECALLER.out.gvcf
+        gvcf_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi.map { it[1]}.collect()
+        tbi_files = GATK4_HAPLOTYPECALLER.out.tbi.map { it[1]}.collect()
         versions   = ch_versions
 }

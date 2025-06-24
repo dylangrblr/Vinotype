@@ -30,6 +30,7 @@ workflow DYLANGRBLR {
     take:
     samplesheet // channel: samplesheet read in from --input
     fasta // channel: fasta file read in from --fasta
+    intervals_list // channel: intervals list file read in from --intervals_list
 
     main:
     //
@@ -37,7 +38,8 @@ workflow DYLANGRBLR {
     //
     VINOTYPE (
         samplesheet,
-        fasta
+        fasta,
+        intervals_list
     )
     emit:
     multiqc_report = VINOTYPE.out.multiqc_report // channel: /path/to/multiqc_report.html
@@ -69,7 +71,8 @@ workflow {
 
     DYLANGRBLR (
         PIPELINE_INITIALISATION.out.samplesheet,
-        PIPELINE_INITIALISATION.out.fasta
+        PIPELINE_INITIALISATION.out.fasta,
+        PIPELINE_INITIALISATION.out.intervals_list
     )
 
     // SUBWORKFLOW: Run completion tasks

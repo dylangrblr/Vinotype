@@ -44,7 +44,7 @@ process GATK4_HAPLOTYPECALLER {
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         HaplotypeCaller \\
         --input $input \\
-        --output ${prefix}.vcf.gz \\
+        --output ${prefix}.g.vcf.gz \\
         --reference $fasta \\
         --native-pair-hmm-threads ${task.cpus} \\
         $dbsnp_command \\

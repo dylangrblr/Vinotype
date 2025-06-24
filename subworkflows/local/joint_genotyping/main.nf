@@ -85,16 +85,16 @@ workflow JOINT_GENOTYPING {
 
         // Collect version info
         ch_versions = Channel.empty()
-        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
-        ch_versions = ch_versions.mix(BCFTOOLS_CONCAT.out.versions)
-        ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
-        ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions)
+        // ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
+        // ch_versions = ch_versions.mix(BCFTOOLS_CONCAT.out.versions)
+        // ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
+        // ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions)
         ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
-        ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
-        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
+        // ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
+        // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
 
     emit:
-        snp_vcf   = ch_snp_vcf
-        indel_vcf = ch_indel_vcf
+        // snp_vcf   = ch_snp_vcf
+        // indel_vcf = ch_indel_vcf
         versions  = ch_versions
 }

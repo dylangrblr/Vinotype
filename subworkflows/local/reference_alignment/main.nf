@@ -100,7 +100,7 @@ workflow REFERENCE_ALIGNMENT {
         // ch_flagstat_combined.dump(tag: 'ch_flagstat_combined')
 
 
-        SAMTOOLS_VIEW.out.bam_bai.dump(tag:'SAMTOOLS_VIEW.out.bam_bai')
+        //SAMTOOLS_VIEW.out.bam_bai.dump(tag:'SAMTOOLS_VIEW.out.bam_bai')
 
    emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)

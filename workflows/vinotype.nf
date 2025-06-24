@@ -26,6 +26,7 @@ workflow VINOTYPE {
     take:
     ch_samplesheet // channel: samplesheet read in from --input
     ch_fasta      // channel: fasta file read in from --fasta
+    ch_intervals_list // channel: intervals list file read in from --intervals_list
 
     main:
 
@@ -65,12 +66,14 @@ workflow VINOTYPE {
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
 
-    // //
-    // // SUBWORKFLOW: JOINT_GENOTYPING
-    // //
-    // JOINT_GENOTYPING (
-    //     ch_samplesheet
-    // )
+    //
+    // SUBWORKFLOW: JOINT_GENOTYPING
+    //
+    JOINT_GENOTYPING (
+        ch_fasta,
+        ch_intervals_list,
+        VARIANT_CALLING.out.gvcf_files
+    )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
