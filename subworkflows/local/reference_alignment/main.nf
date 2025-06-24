@@ -21,7 +21,7 @@ include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_PRE      } from '../../../modules/nf-core/samtools/flagstat/main'
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_POST      } from '../../../modules/nf-core/samtools/flagstat/main'
 
-// SUBWORKFLOWS 
+// SUBWORKFLOWS
 include { INDEXES              } from '../../local/indexes/main'
 
 workflow REFERENCE_ALIGNMENT {
@@ -84,7 +84,7 @@ workflow REFERENCE_ALIGNMENT {
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
 
-        
+
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
         // ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
         // SAMTOOLS_FLAGSTAT_POST(
@@ -94,7 +94,7 @@ workflow REFERENCE_ALIGNMENT {
         // // Combine flagstat reports
         // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
         //     .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
-        //     .map { meta, pre, post -> 
+        //     .map { meta, pre, post ->
         //         [meta, [pre, post]]
         //     }
         // ch_flagstat_combined.dump(tag: 'ch_flagstat_combined')
