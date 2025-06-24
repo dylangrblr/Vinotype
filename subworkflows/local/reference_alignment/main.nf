@@ -103,6 +103,7 @@ workflow REFERENCE_ALIGNMENT {
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
         // metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
         //flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
+        bam_bai =  SAMTOOLS_VIEW.out.bam_bai
         bwa_index =  INDEXES.out.bwa_index
         dict_index =  INDEXES.out.dict_index
         faidx_index = INDEXES.out.faidx_index

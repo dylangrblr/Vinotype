@@ -52,20 +52,17 @@ workflow VINOTYPE {
     // ch_multiqc_files = ch_multiqc_files.mix()
     // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
 
-
-    ch_bwa_index =  REFERENCE_ALIGNMENT.out.bwa_index
-    ch_dict_index =  REFERENCE_ALIGNMENT.out.dict_index
-    ch_faidx_index = REFERENCE_ALIGNMENT.out.faidx_index
-
     //
     // SUBWORKFLOW: VARIANT_CALLING
     //
     VARIANT_CALLING (
-        ch_samplesheet
+        REFERENCE_ALIGNMENT.out.bam_bai,
+        ch_fasta,
+        REFERENCE_ALIGNMENT.out.faidx_index,
+        REFERENCE_ALIGNMENT.out.dict_index,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
 
 
     // //
