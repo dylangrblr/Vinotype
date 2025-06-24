@@ -27,16 +27,16 @@ workflow VARIANT_CALLING {
         // Collect version info
         ch_versions = Channel.empty()
 
+
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
-        ch_bam_bai_extended.dump(tag:'ch_bam_bai_extended')
         GATK4_HAPLOTYPECALLER(
             ch_bam_bai_extended,
             ch_fasta,
             ch_faidx_index,
             ch_dict_index,
-            [],
-            []
+            [[],[]],
+            [[],[]],
         )
 
         // // Get chromosome names for each BAM

@@ -86,11 +86,11 @@ workflow REFERENCE_ALIGNMENT {
 
 
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
-        // ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
-        // SAMTOOLS_FLAGSTAT_POST(
-        //     ch_bam_for_flagstat_post
-        // )
-        // ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
+        ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
+        SAMTOOLS_FLAGSTAT_POST(
+            ch_bam_for_flagstat_post
+        )
+        ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
         // // Combine flagstat reports
         // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
         //     .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
@@ -98,6 +98,9 @@ workflow REFERENCE_ALIGNMENT {
         //         [meta, [pre, post]]
         //     }
         // ch_flagstat_combined.dump(tag: 'ch_flagstat_combined')
+
+
+        SAMTOOLS_VIEW.out.bam_bai.dump(tag:'SAMTOOLS_VIEW.out.bam_bai')
 
    emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
