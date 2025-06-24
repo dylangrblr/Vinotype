@@ -22,47 +22,49 @@ include { GATK4_SELECTVARIANTS  } from '../../../modules/nf-core/gatk4/selectvar
 workflow JOINT_GENOTYPING {
 
     take:
-        ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
-        ch_fasta       // path to reference FASTA
-        ch_intervals   // path to intervals.list (optional)
+        ch_fasta       
+        ch_intervals_list   // path to intervals.list (optional)
+        ch_gvcfs
+        //ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
 
     main:
-        // 1. Index all GVCFs
-        BCFTOOLS_INDEX(ch_gvcf_bins.map { sample, gvcf -> tuple(sample, gvcf) })
+    //NOTE: @abhi18av these are necessary only if we split the BAM files per chromosome
+        // // 1. Index all GVCFs
+        // BCFTOOLS_INDEX(ch_gvcf_bins.map { sample, gvcf -> tuple(sample, gvcf) })
 
-        // 2. Group GVCFs by sample for concatenation
-        ch_gvcf_by_sample = BCFTOOLS_INDEX.out.tbi
-            .groupTuple(0) // group by sample_id
+        // // 2. Group GVCFs by sample for concatenation
+        // ch_gvcf_by_sample = BCFTOOLS_INDEX.out.tbi
+        //     .groupTuple(0) // group by sample_id
 
-        // 3. Concatenate per-sample GVCFs
-        BCFTOOLS_CONCAT(
-            ch_gvcf_by_sample.map { sample, gvcf_list -> tuple(sample, gvcf_list) }
-        )
+        // // 3. Concatenate per-sample GVCFs
+        // BCFTOOLS_CONCAT(
+        //     ch_gvcf_by_sample.map { sample, gvcf_list -> tuple(sample, gvcf_list) }
+        // )
 
-        // 4. Normalize concatenated GVCFs
-        BCFTOOLS_NORM(
-            BCFTOOLS_CONCAT.out.vcf.map { sample, vcf -> tuple(sample, vcf, ch_fasta.first()) },
-            ch_fasta
-        )
+        // // 4. Normalize concatenated GVCFs
+        // BCFTOOLS_NORM(
+        //     BCFTOOLS_CONCAT.out.vcf.map { sample, vcf -> tuple(sample, vcf, ch_fasta.first()) },
+        //     ch_fasta
+        // )
 
-        // 5. Reblock GVCFs
-        GATK4_REBLOCKGVCF(
-            BCFTOOLS_NORM.out.vcf.map { sample, norm_vcf -> tuple(sample, norm_vcf, ch_fasta.first()) },
-            ch_fasta,
-            ch_samtools_faidx,
-            ch_samtools_dict,
-            [],
-            []
-        )
+        // // 5. Reblock GVCFs
+        // GATK4_REBLOCKGVCF(
+        //     BCFTOOLS_NORM.out.vcf.map { sample, norm_vcf -> tuple(sample, norm_vcf, ch_fasta.first()) },
+        //     ch_fasta,
+        //     ch_samtools_faidx,
+        //     ch_samtools_dict,
+        //     [],
+        //     []
+        // )
 
-        // 6. Create sample map for GenomicsDBImport
-        ch_sample_map = GATK4_REBLOCKGVCF.out.vcf
-            .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
-            .collectFile(name: 'Vv_sample.map', sep: '\n')
+        // // 6. Create sample map for GenomicsDBImport
+        // ch_sample_map = GATK4_REBLOCKGVCF.out.vcf
+        //     .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
+        //     .collectFile(name: 'Vv_sample.map', sep: '\n')
 
         // 7. GenomicsDBImport
         GATK4_GENOMICSDBIMPORT(
-            tuple(ch_sample_map, ch_intervals ?: Channel.value('intervals.list'), ch_fasta.first())
+            tuple(ch_sample_map, ch_intervals_list, ch_fasta)
         )
 
         // 8. GenotypeGVCFs

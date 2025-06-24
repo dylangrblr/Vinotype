@@ -39,6 +39,7 @@ process GATK4_HAPLOTYPECALLER {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
+    cp ${dict} ${meta4.id}.dict
 
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         HaplotypeCaller \\
