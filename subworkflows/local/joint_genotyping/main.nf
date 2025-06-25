@@ -79,7 +79,7 @@ workflow JOINT_GENOTYPING {
         // Optionally use an existing GenomicsDB workspace or create a new one
         if (params.base_genomicsdb) {
 
-            ch_genomicsdb = Channel.of( [ [id: 'Vitis_DB.updated'], file(params.base_genomicsdb, checkIfExists: true )] ) 
+            ch_genomicsdb = Channel.value([[id:file(params.base_genomicsdb).baseName], params.base_genomicsdb])
 
         } else {
 
@@ -98,9 +98,9 @@ workflow JOINT_GENOTYPING {
         )
 
         // // 8. GenotypeGVCFs
-        //GATK4_GENOTYPEGVCFS(
-        //    tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta.first())
-        //)
+        // GATK4_GENOTYPEGVCFS(
+        //     tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta)
+        // )
 
         // // 9. SelectVariants for SNPs and INDELs
         // GATK4_SELECTVARIANTS(
