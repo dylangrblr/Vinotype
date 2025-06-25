@@ -22,11 +22,13 @@ include { GATK4_SELECTVARIANTS  } from '../../../modules/nf-core/gatk4/selectvar
 workflow JOINT_GENOTYPING {
 
     take:
-        ch_fasta       
-        ch_intervals_list   // path to intervals.list (optional)
         ch_gvcf_tbi
-        //ch_gvcf
-        //ch_tbi
+        ch_intervals_list   // path to intervals.list (optional)
+        ch_fasta       
+        ch_faidx_index
+        ch_dict_index
+        ch_gvcf
+        ch_tbi
         //ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
 
     main:
@@ -64,18 +66,45 @@ workflow JOINT_GENOTYPING {
         //     .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
         //     .collectFile(name: 'Vv_sample.map', sep: '\n')
 
+
+
+
+
         ch_gvcf_tbi_extended = ch_gvcf_tbi
                                 .combine(ch_intervals_list.map{it[1]})
                                 .map { meta, vcf, tbi, interval -> tuple( meta, vcf, tbi, interval, [], []) }
                                 //.dump(tag: 'GVCFs and TBIs with intervals', pretty: true)
 
-        // 7. GenomicsDBImport
-        GATK4_GENOMICSDBIMPORT(
-            ch_gvcf_tbi_extended,
-            false,
-            false,
-            false
-        )
+
+        // Optionally use an existing GenomicsDB workspace or create a new one
+        if (params.base_genomicsdb) {
+
+            ch_genomicsdb = Channel.of( [ [id: 'Vitis_DB'], file(params.base_genomicsdb, checkIfExists: true )] ) 
+
+            // Update existing workspace
+            GATK4_GENOMICSDBIMPORT(
+                ch_gvcf.collect{it[1]},
+                ch_tbi.collect{it[1]},
+                ch_genomicsdb,
+                ch_fasta,
+                ch_faidx_index,
+                ch_dict_index,
+                true,   // update_workspace
+                params.base_genomicsdb, // existing workspace path
+                false   // create_new_workspace
+            )
+        } else {
+            // Create new workspace
+            GATK4_GENOMICSDBIMPORT(
+                ch_gvcf_tbi_extended,
+                ch_fasta,
+                ch_faidx_index,
+                ch_dict_index,
+                false,  // update_workspace
+                false,   // no existing workspace
+                true    // create_new_workspace
+            )
+        }
 
         // // 8. GenotypeGVCFs
         //GATK4_GENOTYPEGVCFS(

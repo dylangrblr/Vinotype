@@ -70,11 +70,13 @@ workflow VINOTYPE {
     // SUBWORKFLOW: JOINT_GENOTYPING
     //
     JOINT_GENOTYPING (
-        ch_fasta,
+        VARIANT_CALLING.out.gvcf_tbi_files,
         ch_intervals_list,
-        VARIANT_CALLING.out.gvcf_tbi_files
-        //VARIANT_CALLING.out.gvcf_files,
-        //VARIANT_CALLING.out.tbi_files,
+        ch_fasta,
+        REFERENCE_ALIGNMENT.out.faidx_index,
+        REFERENCE_ALIGNMENT.out.dict_index,
+        VARIANT_CALLING.out.gvcf_files,
+        VARIANT_CALLING.out.tbi_files,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
