@@ -11,13 +11,13 @@
  *   - versions: Channel with version information from all modules
  */
 
-include { BCFTOOLS_INDEX        } from '../../../modules/nf-core/bcftools/index/main.nf'
-include { BCFTOOLS_CONCAT       } from '../../../modules/nf-core/bcftools/concat/main.nf'
-include { BCFTOOLS_NORM         } from '../../../modules/nf-core/bcftools/norm/main.nf'
-include { GATK4_REBLOCKGVCF     } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
+include { BCFTOOLS_INDEX         } from '../../../modules/nf-core/bcftools/index/main.nf'
+include { BCFTOOLS_CONCAT        } from '../../../modules/nf-core/bcftools/concat/main.nf'
+include { BCFTOOLS_NORM          } from '../../../modules/nf-core/bcftools/norm/main.nf'
+include { GATK4_REBLOCKGVCF      } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { GATK4_GENOMICSDBIMPORT } from '../../../modules/nf-core/gatk4/genomicsdbimport/main.nf'
-include { GATK4_GENOTYPEGVCFS   } from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
-include { GATK4_SELECTVARIANTS  } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
+include { GATK4_GENOTYPEGVCFS    } from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
+include { GATK4_SELECTVARIANTS   } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 
 workflow JOINT_GENOTYPING {
 
@@ -79,32 +79,23 @@ workflow JOINT_GENOTYPING {
         // Optionally use an existing GenomicsDB workspace or create a new one
         if (params.base_genomicsdb) {
 
-            ch_genomicsdb = Channel.of( [ [id: 'Vitis_DB'], file(params.base_genomicsdb, checkIfExists: true )] ) 
+            ch_genomicsdb = Channel.of( [ [id: 'Vitis_DB.updated'], file(params.base_genomicsdb, checkIfExists: true )] ) 
 
-            // Update existing workspace
-            GATK4_GENOMICSDBIMPORT(
-                ch_gvcf.collect{it[1]},
-                ch_tbi.collect{it[1]},
-                ch_genomicsdb,
-                ch_fasta,
-                ch_faidx_index,
-                ch_dict_index,
-                true,   // update_workspace
-                params.base_genomicsdb, // existing workspace path
-                false   // create_new_workspace
-            )
         } else {
-            // Create new workspace
-            GATK4_GENOMICSDBIMPORT(
-                ch_gvcf_tbi_extended,
-                ch_fasta,
-                ch_faidx_index,
-                ch_dict_index,
-                false,  // update_workspace
-                false,   // no existing workspace
-                true    // create_new_workspace
-            )
+
+            ch_genomicsdb = Channel.of( [ [id:"Vitis_DB.new"], []] ) 
         }
+
+        // Update existing workspace
+        GATK4_GENOMICSDBIMPORT(
+            ch_gvcf.collect{it[1]},
+            ch_tbi.collect{it[1]},
+            ch_genomicsdb,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index,
+            ch_intervals_list
+        )
 
         // // 8. GenotypeGVCFs
         //GATK4_GENOTYPEGVCFS(

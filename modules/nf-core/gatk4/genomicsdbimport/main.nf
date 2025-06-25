@@ -14,12 +14,8 @@ process GATK4_GENOMICSDBIMPORT {
         tuple val(meta1), path(reference_fasta)
         tuple val(meta2), path(reference_fasta_index)
         tuple val(meta3), path(reference_dict)
-        path(interval_file)
-        val(interval_value)
-        val(wspace)
-        val(run_intlist)
-        val(run_updatewspace)
-        val(input_map)
+        tuple val(meta4), path(interval_file)
+
 
     output:
         tuple val(meta), path("${prefix}"), optional: true, emit: genomicsdb
@@ -37,20 +33,20 @@ process GATK4_GENOMICSDBIMPORT {
     // Determine input command: sample map or list of --variant
     input_command = gvcfs.collect { "--variant $it" }.join(' ')
     genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
-    interval_command = interval_file ? "--intervals ${interval_file}" : (interval_value ? "--intervals ${interval_value}" : "")
+    interval_command = "--intervals ${interval_file}"     
     updated_db = ""
 
-    // Interval list mode
-    if (run_intlist) {
-        genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
-        interval_command = "--output-interval-list-to-file ${prefix}.interval_list"
-    }
+    // // Interval list mode
+    // if (run_intlist) {
+    //     genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
+    //     interval_command = "--output-interval-list-to-file ${prefix}.interval_list"
+    // }
 
     // Update workspace mode
-    if (run_updatewspace) {
-        genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
+    if (existing_db) {
+        genomicsdb_command = "--genomicsdb-update-workspace-path ${existing_db}"
         interval_command = ''
-        updated_db = "${wspace}"
+        updated_db = "${meta.id}"
     }
 
     def avail_mem = 3072
@@ -61,6 +57,8 @@ process GATK4_GENOMICSDBIMPORT {
     }
 
     """
+    cp ${reference_dict} ${meta3.id}.dict
+
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         GenomicsDBImport \\
         $input_command \\
@@ -76,35 +74,36 @@ process GATK4_GENOMICSDBIMPORT {
     END_VERSIONS
     """
 
-    stub:
-    prefix   = task.ext.prefix ?: "${meta.id}"
+    // stub:
+    // prefix   = task.ext.prefix ?: "${meta.id}"
 
-    genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
-    interval_command = interval_file ? "--intervals ${interval_file}" : (interval_value ? "--intervals ${interval_value}" : "")
-    updated_db = ""
+    // genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
+    // interval_command = "--intervals ${interval_file}"
+    // updated_db = ""
 
-    if (run_intlist) {
-        genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
-        interval_command = "--output-interval-list-to-file ${prefix}.interval_list"
-    }
-    if (run_updatewspace) {
-        genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
-        interval_command = ''
-        updated_db = "${wspace}"
-    }
+    // // if (run_intlist) {
+    // //     genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
+    // //     interval_command = "--output-interval-list-to-file ${prefix}.interval_list"
+    // // }
 
-    def stub_genomicsdb = genomicsdb_command == "--genomicsdb-workspace-path ${prefix}" ? "touch ${prefix}" : ""
-    def stub_interval   = interval_command == "--output-interval-list-to-file ${prefix}.interval_list" ? "touch ${prefix}.interval_list" : ""
-    def stub_update     = updated_db != "" ? "touch ${wspace}" : ""
+    // if (existing_db) {
+    //     genomicsdb_command = "--genomicsdb-update-workspace-path ${wspace}"
+    //     interval_command = ''
+    //     updated_db = "${meta.id}.new"
+    // }
 
-    """
-    ${stub_genomicsdb}
-    ${stub_interval}
-    ${stub_update}
+    // def stub_genomicsdb = genomicsdb_command == "--genomicsdb-workspace-path ${prefix}" ? "touch ${prefix}" : ""
+    // def stub_interval   = interval_command == "--output-interval-list-to-file ${prefix}.interval_list" ? "touch ${prefix}.interval_list" : ""
+    // def stub_update     = updated_db != "" ? "touch ${updated_db}" : ""
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        gatk4: \$(echo \$(gatk --version 2>&1) | sed 's/^.*(GATK) v//; s/ .*\$//')
-    END_VERSIONS
-    """
+    // """
+    // ${stub_genomicsdb}
+    // ${stub_interval}
+    // ${stub_update}
+
+    // cat <<-END_VERSIONS > versions.yml
+    // "${task.process}":
+    //     gatk4: \$(echo \$(gatk --version 2>&1) | sed 's/^.*(GATK) v//; s/ .*\$//')
+    // END_VERSIONS
+    // """
 }
