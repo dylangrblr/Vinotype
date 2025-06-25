@@ -24,7 +24,9 @@ workflow JOINT_GENOTYPING {
     take:
         ch_fasta       
         ch_intervals_list   // path to intervals.list (optional)
-        ch_gvcfs
+        ch_gvcf_tbi
+        //ch_gvcf
+        //ch_tbi
         //ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
 
     main:
@@ -62,26 +64,35 @@ workflow JOINT_GENOTYPING {
         //     .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
         //     .collectFile(name: 'Vv_sample.map', sep: '\n')
 
+        ch_gvcf_tbi_extended = ch_gvcf_tbi
+                                .combine(ch_intervals_list.map{it[1]})
+                                .map { meta, vcf, tbi, interval -> tuple( meta, vcf, tbi, interval, [], []) }
+                                //.dump(tag: 'GVCFs and TBIs with intervals', pretty: true)
+
         // 7. GenomicsDBImport
         GATK4_GENOMICSDBIMPORT(
-            tuple(ch_sample_map, ch_intervals_list, ch_fasta)
+            ch_gvcf_tbi_extended,
+            false,
+            false,
+            false
         )
 
-        // 8. GenotypeGVCFs
-        GATK4_GENOTYPEGVCFS(
-            tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta.first())
-        )
+        // // 8. GenotypeGVCFs
+        //GATK4_GENOTYPEGVCFS(
+        //    tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta.first())
+        //)
 
-        // 9. SelectVariants for SNPs and INDELs
-        GATK4_SELECTVARIANTS(
-            GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'SNP') }
-        )
-        ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
+        // // 9. SelectVariants for SNPs and INDELs
+        // GATK4_SELECTVARIANTS(
+        //     GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'SNP') }
+        // )
+        // ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
 
-        GATK4_SELECTVARIANTS(
-            GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'INDEL') }
-        )
-        ch_indel_vcf = GATK4_SELECTVARIANTS.out.vcf
+        // GATK4_SELECTVARIANTS(
+        //     GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'INDEL') }
+        // )
+        // ch_indel_vcf = GATK4_SELECTVARIANTS.out.vcf
+
 
         // Collect version info
         ch_versions = Channel.empty()
@@ -89,7 +100,7 @@ workflow JOINT_GENOTYPING {
         // ch_versions = ch_versions.mix(BCFTOOLS_CONCAT.out.versions)
         // ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
         // ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions)
-        ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
+        // ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
         // ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
 
