@@ -8,7 +8,8 @@ process GATK4_VARIANTSTOTABLE {
         'community.wave.seqera.io/library/gatk4_gcnvkernel:e48d414933d188cd' }"
 
     input:
-    tuple val(meta),  path(vcf), path(tbi), path(arguments_file), path(include_intervals), path(exclude_intervals)
+    tuple val(meta),  path(vcf), path(tbi)
+    val(annotation_fields)
     tuple val(meta2), path(fasta)
     tuple val(meta3), path(fai)
     tuple val(meta4), path(dict)
@@ -23,9 +24,17 @@ process GATK4_VARIANTSTOTABLE {
     script:
     def args = task.ext.args ?:''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def arguments_file_arg    = arguments_file ? "--arguments_file ${arguments_file}" : ""
-    def include_intervals_arg = include_intervals ? "-L ${include_intervals}" : ""
-    def exclude_intervals_arg = exclude_intervals ? "-XL ${exclude_intervals}" : ""
+
+    // Process annotation fields for GATK format
+    def gatk_fields = annotation_fields.collect { field ->
+        // Convert bcftools format to GATK format
+        field.replaceAll(/\[ *%/, '')
+             .replaceAll(/\] */, '')
+             .replaceAll(/%/, '')
+             .replaceAll(/INFO\//, '')
+    }.join(' -F ')
+
+
 
     def avail_mem = 3072
     if (!task.memory) {
@@ -36,20 +45,19 @@ process GATK4_VARIANTSTOTABLE {
     """
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         VariantsToTable \\
-        ${args} \\
-        --variant $vcf \\
-        --output ${prefix}.tsv \\
-        --reference $fasta \\
+        --variant ${vcf} \\
+        -F ${gatk_fields} \\
+        --output ${prefix}_annotations.tsv \\
+        --show-filtered \\
         --tmp-dir . \\
-        $arguments_file_arg \\
-        $include_intervals_arg \\
-        $exclude_intervals_arg
+        ${args}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         gatk4: \$(echo \$(gatk --version 2>&1) | sed 's/^.*(GATK) v//; s/ .*\$//')
     END_VERSIONS
     """
+
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """

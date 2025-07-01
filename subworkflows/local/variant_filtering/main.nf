@@ -17,6 +17,7 @@
 
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
+include { GATK4_VARIANTSTOTABLE } from '../../../modules/nf-core/gatk4/variantstotable/main' 
 
 include { BCFTOOLS_INDEX      } from '../../../modules/nf-core/bcftools/index/main.nf'
 include { BCFTOOLS_QUERY      } from '../../../modules/local/bcftools/query/main.nf'
@@ -46,6 +47,7 @@ workflow VARIANT_FILTERING {
             'snp'
         )
         ch_snp_vcf = GATK4_SELECTVARIANTS__SNP.out.vcf
+        ch_snp_vcf_tbi = GATK4_SELECTVARIANTS__SNP.out.vcf_tbi
 
         GATK4_SELECTVARIANTS__INDEL(
             ch_vcf_tbi,
@@ -56,12 +58,6 @@ workflow VARIANT_FILTERING {
             'indel'
         )
         ch_indel_vcf = GATK4_SELECTVARIANTS__INDEL.out.vcf
-
-        // 2. Index SNP VCF for downstream querying and filtering
-        BCFTOOLS_INDEX(ch_snp_vcf)
-        // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
-
-        // 3. Extract annotation fields and plot distributions
 
         list_annotation_types = [
             "[ %DP]",
@@ -82,14 +78,29 @@ workflow VARIANT_FILTERING {
             "%DP",
             "%SOR" ]
 
+// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach 
+        GATK4_VARIANTSTOTABLE(
+            ch_snp_vcf_tbi,
+            list_annotation_types,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index
+        )
 
+        // 2. Index SNP VCF for downstream querying and filtering
+        BCFTOOLS_INDEX(ch_snp_vcf)
+        // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
+
+        // 3. Extract annotation fields and plot distributions
         BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt
 
+/*
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
+*/
 
         // 4. Apply final filtering and normalization
-        // BCFTOOLS_NORM(ch_snp_vcf_indexed.map { meta, vcf -> tuple(meta, vcf, ch_fasta.first()[1]) })
+        BCFTOOLS_NORM(ch_snp_vcf_tbi, ch_fasta)
         // ch_norm_vcf = BCFTOOLS_NORM.out.vcf
 
         // BCFTOOLS_FILTER(ch_norm_vcf.map { meta, vcf -> tuple(meta, vcf, "SOR >= 3.5 || FS >= 50.0 || ReadPosRankSum <= -2.0 || MQRankSum <= -3.0 || QD <= 10.0 || COUNT(FORMAT/GQ <= 10) / N_SAMPLES > 0.25 || COUNT(GT[*] == '0/1' & AD[*:1] < 2) / COUNT(GT[*] == '0/1') > 0.0 || COUNT(GT[*] == '1/1' & AD[*:1] < 4) / COUNT(GT[*] == '1/1') > 0.0 || FORMAT/DP < 2 || AC < 2") })
