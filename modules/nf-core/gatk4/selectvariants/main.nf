@@ -16,6 +16,7 @@ process GATK4_SELECTVARIANTS {
     val(var_type)
 
     output:
+    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi")     , emit: vcf_tbi
     tuple val(meta), path("*.vcf.gz")       , emit: vcf
     tuple val(meta), path("*.vcf.gz.tbi")   , emit: tbi
     path "versions.yml"		                , emit: versions

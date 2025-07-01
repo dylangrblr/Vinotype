@@ -17,9 +17,6 @@ include { BCFTOOLS_NORM          } from '../../../modules/nf-core/bcftools/norm/
 include { GATK4_REBLOCKGVCF      } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { GATK4_GENOMICSDBIMPORT } from '../../../modules/nf-core/gatk4/genomicsdbimport/main.nf'
 include { GATK4_GENOTYPEGVCFS    } from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
-include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
-include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
-
 workflow JOINT_GENOTYPING {
 
     take:
@@ -106,29 +103,6 @@ workflow JOINT_GENOTYPING {
 
 //GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
 
-        // 9. SelectVariants for SNPs and INDELs
-        GATK4_SELECTVARIANTS__SNP(
-            GATK4_GENOTYPEGVCFS.out.vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
-            'snp'
-        )
-        // ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
-
-
-        GATK4_SELECTVARIANTS__INDEL(
-            GATK4_GENOTYPEGVCFS.out.vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
-            'indel'
-        )
-        // ch_indel_vcf = GATK4_SELECTVARIANTS.out.vcf
-
-
         // Collect version info
         ch_versions = Channel.empty()
         // ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
@@ -140,7 +114,6 @@ workflow JOINT_GENOTYPING {
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
 
     emit:
-        // snp_vcf   = ch_snp_vcf
-        // indel_vcf = ch_indel_vcf
+        gvcf_tbi_files = GATK4_GENOTYPEGVCFS.out.vcf_tbi
         versions  = ch_versions
 }
