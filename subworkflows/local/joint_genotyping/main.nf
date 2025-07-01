@@ -117,9 +117,15 @@ workflow JOINT_GENOTYPING {
         )
         // ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
 
-        // GATK4_SELECTVARIANTS(
-        //     GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'INDEL') }
-        // )
+
+        GATK4_SELECTVARIANTS__INDEL(
+            GATK4_GENOTYPEGVCFS.out.vcf_tbi,
+            ch_intervals_list,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index,
+            'indel'
+        )
         // ch_indel_vcf = GATK4_SELECTVARIANTS.out.vcf
 
 
