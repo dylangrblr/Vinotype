@@ -80,7 +80,7 @@ workflow VARIANT_FILTERING {
             "%DP",
             "%SOR" ]
 
-// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach 
+// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach 
         GATK4_VARIANTSTOTABLE(
             ch_snp_vcf_tbi,
             list_annotation_types,
@@ -101,22 +101,12 @@ workflow VARIANT_FILTERING {
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
 */
 
-        // 4. Apply final filtering and normalization
-        BCFTOOLS_NORM(ch_snp_vcf_tbi, ch_fasta)
-        // ch_norm_vcf = BCFTOOLS_NORM.out.vcf
 
-        // BCFTOOLS_FILTER(ch_norm_vcf.map { meta, vcf -> tuple(meta, vcf, "SOR >= 3.5 || FS >= 50.0 || ReadPosRankSum <= -2.0 || MQRankSum <= -3.0 || QD <= 10.0 || COUNT(FORMAT/GQ <= 10) / N_SAMPLES > 0.25 || COUNT(GT[*] == '0/1' & AD[*:1] < 2) / COUNT(GT[*] == '0/1') > 0.0 || COUNT(GT[*] == '1/1' & AD[*:1] < 4) / COUNT(GT[*] == '1/1') > 0.0 || FORMAT/DP < 2 || AC < 2") })
-        // ch_filtered_vcf = BCFTOOLS_FILTER.out.vcf
-
-        // BCFTOOLS_NORM(ch_filtered_vcf.map { meta, vcf -> tuple(meta, vcf, '+both') })
-        // ch_final_norm_vcf = BCFTOOLS_NORM.out.vcf
-
-        // BCFTOOLS_VIEW(ch_final_norm_vcf.map { meta, vcf -> tuple(meta, vcf, '--max-alleles 2') })
-        // ch_biallelic_vcf = BCFTOOLS_VIEW.out.vcf
-
-        // VCFTOOLS_VIEW(ch_biallelic_vcf.map { meta, vcf -> tuple(meta, vcf, '--max-missing 0.8') })
-        // ch_final_filtered_vcf = VCFTOOLS_VIEW.out.vcf
-
+        UTILS_FINALFILTER(
+            ch_snp_vcf_tbi,
+            ch_fasta,
+            ch_faidx_index
+        )
         // 5. Collect version info
         ch_versions = Channel.empty()
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
