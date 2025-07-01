@@ -19,6 +19,8 @@ include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../mod
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 include { GATK4_VARIANTSTOTABLE } from '../../../modules/nf-core/gatk4/variantstotable/main' 
 
+include { UTILS_FINALFILTER      } from '../../../modules/local/utils/finalfilter/main.nf'
+
 include { BCFTOOLS_INDEX      } from '../../../modules/nf-core/bcftools/index/main.nf'
 include { BCFTOOLS_QUERY      } from '../../../modules/local/bcftools/query/main.nf'
 include { BCFTOOLS_NORM       } from '../../../modules/nf-core/bcftools/norm/main.nf'
