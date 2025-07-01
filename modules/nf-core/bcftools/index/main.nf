@@ -11,8 +11,9 @@ process BCFTOOLS_INDEX {
     tuple val(meta), path(vcf)
 
     output:
+    tuple val(meta), path(vcf), path("*.tbi"), emit: vcf_tbi
+    tuple val(meta), path("*.tbi"), emit: tbi
     tuple val(meta), path("*.csi"), optional:true, emit: csi
-    tuple val(meta), path("*.tbi"), optional:true, emit: tbi
     path "versions.yml"           , emit: versions
 
     when:

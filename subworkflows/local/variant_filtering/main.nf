@@ -19,7 +19,7 @@ include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../mod
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 
 include { BCFTOOLS_INDEX      } from '../../../modules/nf-core/bcftools/index/main.nf'
-include { BCFTOOLS_QUERY      } from '../../../modules/nf-core/bcftools/query/main.nf'
+include { BCFTOOLS_QUERY      } from '../../../modules/local/bcftools/query/main.nf'
 include { BCFTOOLS_NORM       } from '../../../modules/nf-core/bcftools/norm/main.nf'
 include { BCFTOOLS_FILTER     } from '../../../modules/nf-core/bcftools/filter/main.nf'
 include { BCFTOOLS_VIEW       } from '../../../modules/nf-core/bcftools/view/main.nf'
@@ -62,11 +62,28 @@ workflow VARIANT_FILTERING {
         // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
 
         // 3. Extract annotation fields and plot distributions
-        // ch_annot_tasks = ch_annotations
-            // .combine(ch_snp_vcf_indexed)
-            //.map { annotation, tuple(meta, vcf) -> tuple(meta, vcf, annotation, ch_output_dir) }
 
-        // BCFTOOLS_QUERY(ch_annot_tasks.map { meta, vcf, annotation, outdir -> tuple(meta, vcf, annotation) })
+        list_annotation_types = [
+            "[ %DP]",
+            "[ %GQ]", 
+            "%AC",
+            "%AD",
+            "%AF",
+            "%AN",
+            "%FS",
+            "%GQ",
+            "%INFO/AF",
+            "%INFO/DP",
+            "%MQ",
+            "%MQRankSum",
+            "%QD",
+            "%QUAL",
+            "%ReadPosRankSum",
+            "%DP",
+            "%SOR" ]
+
+
+        BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt
 
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
