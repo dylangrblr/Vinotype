@@ -10,6 +10,9 @@ process GATK4_SELECTVARIANTS {
     input:
     tuple val(meta), path(vcf), path(vcf_idx)
     tuple val(meta2), path (intervals)
+    tuple val(meta3), path(fasta)
+    tuple val(meta4), path(fasta_index)
+    tuple val(meta5), path(dict)
     val(var_type)
 
     output:
@@ -34,10 +37,13 @@ process GATK4_SELECTVARIANTS {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
+    cp ${dict} ${meta5.id}.dict
+
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData ${java_opts}" \\
         SelectVariants \\
         --variant $vcf \\
         --output ${prefix}.vcf.gz \\
+        --reference $fasta \\
         --select-type-to-include "${varType}" \\
         $interval \\
         --tmp-dir . \\
