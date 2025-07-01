@@ -66,10 +66,6 @@ workflow JOINT_GENOTYPING {
         //     .map { sample, reblocked_vcf -> "${sample}\t${reblocked_vcf}" }
         //     .collectFile(name: 'Vv_sample.map', sep: '\n')
 
-
-
-
-
         ch_gvcf_tbi_extended = ch_gvcf_tbi
                                 .combine(ch_intervals_list.map{it[1]})
                                 .map { meta, vcf, tbi, interval -> tuple( meta, vcf, tbi, interval, [], []) }
@@ -97,15 +93,24 @@ workflow JOINT_GENOTYPING {
             ch_intervals_list
         )
 
-        // // 8. GenotypeGVCFs
-        // GATK4_GENOTYPEGVCFS(
-        //     tuple(GATK4_GENOMICSDBIMPORT.out.db, ch_fasta)
-        // )
 
-        // // 9. SelectVariants for SNPs and INDELs
-        // GATK4_SELECTVARIANTS(
-        //     GATK4_GENOTYPEGVCFS.out.vcf.map { vcf -> tuple(vcf, ch_fasta.first(), 'SNP') }
-        // )
+        // 8. GenotypeGVCFs
+        GATK4_GENOTYPEGVCFS(
+                  GATK4_GENOMICSDBIMPORT.out.updatedb,
+                  ch_intervals_list,
+                  ch_fasta, 
+                  ch_faidx_index, 
+                  ch_dict_index)
+
+
+//GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
+
+        // 9. SelectVariants for SNPs and INDELs
+        GATK4_SELECTVARIANTS(
+            GATK4_GENOTYPEGVCFS.out.vcf_tbi,
+            ch_intervals_list,
+            'snp'
+        )
         // ch_snp_vcf = GATK4_SELECTVARIANTS.out.vcf
 
         // GATK4_SELECTVARIANTS(

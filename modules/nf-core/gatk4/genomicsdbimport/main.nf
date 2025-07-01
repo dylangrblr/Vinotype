@@ -18,9 +18,8 @@ process GATK4_GENOMICSDBIMPORT {
 
 
     output:
+        tuple val(meta), path("${updated_db}"), emit: updatedb
         tuple val(meta), path("${prefix}"), optional: true, emit: genomicsdb
-        tuple val(meta), path("${updated_db}"), optional: true, emit: updatedb
-        tuple val(meta), path("*.interval_list"), optional: true, emit: intervallist
         path "versions.yml", emit: versions
 
     when:
@@ -34,7 +33,7 @@ process GATK4_GENOMICSDBIMPORT {
     input_command = gvcfs.collect { "--variant $it" }.join(' ')
     genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
     interval_command = "--intervals ${interval_file}"     
-    updated_db = ""
+    updated_db = "${meta.id}"
 
     // // Interval list mode
     // if (run_intlist) {

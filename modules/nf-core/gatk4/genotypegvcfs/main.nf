@@ -8,14 +8,14 @@ process GATK4_GENOTYPEGVCFS {
         'community.wave.seqera.io/library/gatk4_gcnvkernel:e48d414933d188cd' }"
 
     input:
-    tuple val(meta), path(input), path(gvcf_index), path(intervals), path(intervals_index)
-    tuple val(meta2), path(fasta)
-    tuple val(meta3), path(fai)
-    tuple val(meta4), path(dict)
-    tuple val(meta5), path(dbsnp)
-    tuple val(meta6), path(dbsnp_tbi)
+    tuple val(meta), path(input) 
+    tuple val(meta2), path(intervals)
+    tuple val(meta3), path(fasta)
+    tuple val(meta4), path(fai)
+    tuple val(meta5), path(dict)
 
     output:
+    tuple val(meta), path("*.vcf.gz"), path("*.tbi"), emit: vcf_tbi
     tuple val(meta), path("*.vcf.gz"), emit: vcf
     tuple val(meta), path("*.tbi")   , emit: tbi
     path  "versions.yml"             , emit: versions
@@ -26,8 +26,8 @@ process GATK4_GENOTYPEGVCFS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def input_command = input.name.endsWith(".vcf") || input.name.endsWith(".vcf.gz") ? "$input" : "gendb://$input"
-    def dbsnp_command = dbsnp ? "--dbsnp $dbsnp" : ""
+    def input_command =  "gendb://$input"
+    def dbsnp_command =  ""
     def interval_command = intervals ? "--intervals $intervals" : ""
 
     def avail_mem = 3072
@@ -37,6 +37,8 @@ process GATK4_GENOTYPEGVCFS {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
+    cp ${dict} ${meta5.id}.dict
+
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         GenotypeGVCFs \\
         --variant $input_command \\

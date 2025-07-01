@@ -8,7 +8,9 @@ process GATK4_SELECTVARIANTS {
         'community.wave.seqera.io/library/gatk4_gcnvkernel:e48d414933d188cd' }"
 
     input:
-    tuple val(meta), path(vcf), path(vcf_idx), path (intervals)
+    tuple val(meta), path(vcf), path(vcf_idx)
+    tuple val(meta2), path (intervals)
+    val(var_type)
 
     output:
     tuple val(meta), path("*.vcf.gz")       , emit: vcf
@@ -20,8 +22,10 @@ process GATK4_SELECTVARIANTS {
 
     script:
     def args = task.ext.args ?: ''
+    def java_opts = task.ext.java_opts ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def interval = intervals ? "--intervals ${intervals}" : ""
+    def varType = var_type.toUpperCase()
 
     def avail_mem = 3072
     if (!task.memory) {
@@ -30,10 +34,11 @@ process GATK4_SELECTVARIANTS {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
-    gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
+    gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData ${java_opts}" \\
         SelectVariants \\
         --variant $vcf \\
         --output ${prefix}.vcf.gz \\
+        --select-type-to-include "${varType}" \\
         $interval \\
         --tmp-dir . \\
         $args
