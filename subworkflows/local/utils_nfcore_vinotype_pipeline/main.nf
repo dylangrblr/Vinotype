@@ -89,11 +89,13 @@ workflow PIPELINE_INITIALISATION {
 
 
     ch_fasta = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta])
+    ch_intervals_list = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_intervals_list])
 
     emit:
-    samplesheet = ch_samplesheet
-    fasta       = ch_fasta
-    versions    = ch_versions
+    samplesheet     = ch_samplesheet
+    fasta           = ch_fasta
+    intervals_list  = ch_intervals_list
+    versions        = ch_versions
 }
 
 /*

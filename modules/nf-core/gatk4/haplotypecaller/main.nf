@@ -16,10 +16,11 @@ process GATK4_HAPLOTYPECALLER {
     tuple val(meta6), path(dbsnp_tbi)
 
     output:
-    tuple val(meta), path("*.vcf.gz")       , emit: vcf
-    tuple val(meta), path("*.tbi")          , optional:true, emit: tbi
-    tuple val(meta), path("*.realigned.bam"), optional:true, emit: bam
-    path "versions.yml"                     , emit: versions
+    tuple val(meta), path("*.vcf.gz"), path("*.tbi")       , emit: vcf_tbi
+    tuple val(meta), path("*.vcf.gz")                      , emit: vcf
+    tuple val(meta), path("*.tbi")                         , optional:true, emit: tbi
+    tuple val(meta), path("*.realigned.bam")               , optional:true, emit: bam
+    path "versions.yml"                                    , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -39,11 +40,12 @@ process GATK4_HAPLOTYPECALLER {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
+    cp ${dict} ${meta4.id}.dict
 
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         HaplotypeCaller \\
         --input $input \\
-        --output ${prefix}.vcf.gz \\
+        --output ${prefix}.g.vcf.gz \\
         --reference $fasta \\
         --native-pair-hmm-threads ${task.cpus} \\
         $dbsnp_command \\

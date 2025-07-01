@@ -46,6 +46,18 @@ workflow INDEXES {
             ch_dict_index = SAMTOOLS_DICT.out.dict
         }
 
+
+
+        //TODO @abhi18av
+        // // Intervals list
+        // if (params.ref_intervals) {
+        //     ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_intervals])
+        // } else {
+        //     UTILS_INTERVALS_LIST(ch_fasta)
+        //     ch_intervals_list = UTILS_INTERVALS_LIST.out.intervals
+        // }
+
+
         // Collect version info only for generated outputs
         ch_versions = Channel.empty()
         if (!params.ref_bwa_index)      ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
