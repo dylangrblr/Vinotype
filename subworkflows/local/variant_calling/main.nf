@@ -12,6 +12,7 @@ include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/ma
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
+include { GATK4_MERGEVCFS } from '../../../modules/nf-core/gatk4/mergevcfs/main.nf'
 
 workflow VARIANT_CALLING {
 
@@ -20,6 +21,7 @@ workflow VARIANT_CALLING {
         ch_fasta    // tuple(meta, fasta)
         ch_faidx_index  // tuple(meta, faidx_index)
         ch_dict_index  // tuple(meta, dict_index)
+        ch_intervals_list // path to intervals.list 
 
 
     main:
@@ -27,17 +29,36 @@ workflow VARIANT_CALLING {
         // Collect version info
         ch_versions = Channel.empty()
 
-
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
-        GATK4_HAPLOTYPECALLER(
-            ch_bam_bai_extended,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
-            [[],[]],
-            [[],[]],
-        )
+
+
+        if(!params.split_bam) {
+            GATK4_HAPLOTYPECALLER(
+                ch_bam_bai_extended,
+                ch_fasta,
+                ch_faidx_index,
+                ch_dict_index,
+                [[],[]],
+                [[],[]],
+            )
+        } else {
+            ch_bam_split = ch_bam_bai
+                .combine(ch_intervals_list)
+                .map { meta, bam, bai, interval -> tuple(meta, bam, bai, interval) }
+            SAMTOOLS_VIEW(ch_bam_split)
+
+            // 2. Variant calling on each split
+            ch_bam_split_vc = SAMTOOLS_VIEW.out.bam.map { meta, split_bam, interval ->
+                tuple(meta, split_bam, interval)
+            }
+            GATK4_HAPLOTYPECALLER(ch_bam_split_vc, ch_fasta, ch_faidx_index, ch_dict_index)
+
+            // 3. Merge VCFs
+            ch_vcfs = GATK4_HAPLOTYPECALLER.out.vcf
+            GATK4_MERGEVCFS(ch_vcfs, ch_dict_index)
+
+        }
 
         // // Get chromosome names for each BAM
         // SAMTOOLS_IDXSTATS(ch_bam_bai)
@@ -65,7 +86,7 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
-        // ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
+        ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
     emit:
         gvcf_tbi_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi
