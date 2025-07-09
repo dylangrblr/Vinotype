@@ -33,7 +33,7 @@ workflow VARIANT_CALLING {
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
 
 
-        if(!params.split_bam) {
+        if(!params.split_fastq) {
             GATK4_HAPLOTYPECALLER(
                 ch_bam_bai_extended,
                 ch_fasta,
