@@ -7,29 +7,55 @@
 include { SAMTOOLS_SORT      } from '../../../modules/nf-core/samtools/sort/main'
 include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
 
+def makeBins(start, end, split_size) {
+        def bins = []
+        for (int i = start; i <= end; i += split_size) {
+            def bin_end = Math.min(i + split_size - 1, end)
+            bins << [i, bin_end]
+        }
+        return bins
+    }
+
+
+
 workflow SPLIT_BAM_VARIANT_CALLING {
 
     take:
-    // TODO nf-core: edit input (take) channels
-    ch_bam // channel: [ val(meta), [ bam ] ]
+        ch_bam_files      // Channel of BAM files
+        ch_fasta          // Reference FASTA
+        ch_faidx_index    // FASTA index
+        ch_dict_index     // Dict index
+        ch_intervals_list         // Intervals list 
 
     main:
+        ch_versions = Channel.empty()
 
-    ch_versions = Channel.empty()
+        ch_bins = Channel.from(makeBins(params.bin_start, params.bin_end, params.bin_split_size))
 
-    // TODO nf-core: substitute modules here for the modules of your subworkflow
+        // 1. Index BAMs if needed
+//        SAMTOOLS_INDEX(ch_bam_files)
 
-    SAMTOOLS_SORT ( ch_bam )
-    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+        // 2. Generate all (bam, bin, chrom) combinations
+//        ch_bam_bin_chrom = ch_bam_files
+//            .combine(ch_bins)
+//            .combine(ch_chroms)
+//            .map { bam, bin, chrom -> tuple(bam, bin, chrom) }
 
-    SAMTOOLS_INDEX ( SAMTOOLS_SORT.out.bam )
-    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+        // 3. Subset BAM by chromosome for each bin
+//        SAMTOOLS_VIEW(ch_bam_bin_chrom)
+
+        // 4. Variant calling on each split
+//        GATK4_HAPLOTYPECALLER(
+//            SAMTOOLS_VIEW.out.bam,
+//            ch_fasta,
+//            ch_faidx_index,
+//            ch_dict_index
+//        )
+
+        // 5. Merge VCFs per bin (optional, if needed)
+//        GATK4_MERGEVCFS(GATK4_HAPLOTYPECALLER.out.vcf, ch_dict_index)
 
     emit:
-    // TODO nf-core: edit emitted channels
-    bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
-    bai      = SAMTOOLS_INDEX.out.bai          // channel: [ val(meta), [ bai ] ]
-    csi      = SAMTOOLS_INDEX.out.csi          // channel: [ val(meta), [ csi ] ]
-
-    versions = ch_versions                     // channel: [ versions.yml ]
+        // merged_vcfs = GATK4_MERGEVCFS.out.vcf
+        versions = ch_versions                     // channel: [ versions.yml ]
 }

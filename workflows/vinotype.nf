@@ -12,6 +12,7 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_vino
 include { QUALITY_CONTROL } from '../subworkflows/local/quality_control'
 include { REFERENCE_ALIGNMENT } from '../subworkflows/local/reference_alignment'
 include { VARIANT_CALLING } from '../subworkflows/local/variant_calling'
+include { SPLIT_BAM_VARIANT_CALLING } from '../subworkflows/local/split_bam_variant_calling'
 include { JOINT_GENOTYPING } from '../subworkflows/local/joint_genotyping'
 include { VARIANT_FILTERING } from '../subworkflows/local/variant_filtering'
 
@@ -63,15 +64,42 @@ workflow VINOTYPE {
     // ch_multiqc_files = ch_multiqc_files.mix()
     // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
 
+
+    if(!params.split_bam) {
+        //
+        // SUBWORKFLOW: VARIANT_CALLING
+        //
+        VARIANT_CALLING (
+            REFERENCE_ALIGNMENT.out.bam_bai,
+            ch_fasta,
+            REFERENCE_ALIGNMENT.out.faidx_index,
+            REFERENCE_ALIGNMENT.out.dict_index,
+        )
+        // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+        // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    } else {
+        SPLIT_BAM_VARIANT_CALLING (
+            REFERENCE_ALIGNMENT.out.bam_bai,
+            ch_fasta,
+            REFERENCE_ALIGNMENT.out.faidx_index,
+            REFERENCE_ALIGNMENT.out.dict_index,
+            ch_intervals_list
+        )
+
+    }
+
     //
-    // SUBWORKFLOW: VARIANT_CALLING
+    // SUBWORKFLOW: JOINT_GENOTYPING
     //
-    VARIANT_CALLING (
-        REFERENCE_ALIGNMENT.out.bam_bai,
-        ch_fasta,
-        REFERENCE_ALIGNMENT.out.faidx_index,
-        REFERENCE_ALIGNMENT.out.dict_index,
-    )
+//    JOINT_GENOTYPING (
+//        VARIANT_CALLING.out.gvcf_tbi_files,
+//        ch_intervals_list,
+//        ch_fasta,
+//        REFERENCE_ALIGNMENT.out.faidx_index,
+//        REFERENCE_ALIGNMENT.out.dict_index,
+//        VARIANT_CALLING.out.gvcf_files,
+//        VARIANT_CALLING.out.tbi_files,
+//    )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
@@ -79,29 +107,13 @@ workflow VINOTYPE {
     //
     // SUBWORKFLOW: JOINT_GENOTYPING
     //
-    JOINT_GENOTYPING (
-        VARIANT_CALLING.out.gvcf_tbi_files,
-        ch_intervals_list,
-        ch_fasta,
-        REFERENCE_ALIGNMENT.out.faidx_index,
-        REFERENCE_ALIGNMENT.out.dict_index,
-        VARIANT_CALLING.out.gvcf_files,
-        VARIANT_CALLING.out.tbi_files,
-    )
-    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
-
-    //
-    // SUBWORKFLOW: JOINT_GENOTYPING
-    //
-    VARIANT_FILTERING (
-        JOINT_GENOTYPING.out.gvcf_tbi_files,
-        ch_fasta,
-        REFERENCE_ALIGNMENT.out.faidx_index,
-        REFERENCE_ALIGNMENT.out.dict_index,
-        ch_intervals_list,
-    )
+//    VARIANT_FILTERING (
+//        JOINT_GENOTYPING.out.gvcf_tbi_files,
+//        ch_fasta,
+//        REFERENCE_ALIGNMENT.out.faidx_index,
+//        REFERENCE_ALIGNMENT.out.dict_index,
+//        ch_intervals_list,
+//    )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
