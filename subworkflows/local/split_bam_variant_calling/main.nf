@@ -21,25 +21,28 @@ def makeBins(start, end, split_size) {
 workflow SPLIT_BAM_VARIANT_CALLING {
 
     take:
-        ch_bam_files      // Channel of BAM files
+        ch_bam_bai        // Channel of BAM files
         ch_fasta          // Reference FASTA
         ch_faidx_index    // FASTA index
         ch_dict_index     // Dict index
-        ch_intervals_list         // Intervals list 
+        ch_intervals_list // Intervals list 
 
     main:
         ch_versions = Channel.empty()
 
         ch_bins = Channel.from(makeBins(params.bin_start, params.bin_end, params.bin_split_size))
+                        .dump(tag: 'ch_bins', pretty: true)
+        
 
         // 1. Index BAMs if needed
 //        SAMTOOLS_INDEX(ch_bam_files)
 
         // 2. Generate all (bam, bin, chrom) combinations
-//        ch_bam_bin_chrom = ch_bam_files
-//            .combine(ch_bins)
-//            .combine(ch_chroms)
-//            .map { bam, bin, chrom -> tuple(bam, bin, chrom) }
+        ch_bam_bin_chrom = ch_bam_bai
+                                .dump(tag: 'ch_bam_bin_chrom', pretty: true)
+        //     .combine(ch_bins)
+        //     .combine(ch_chroms)
+        //     .map { bam, bin, chrom -> tuple(bam, bin, chrom) }
 
         // 3. Subset BAM by chromosome for each bin
 //        SAMTOOLS_VIEW(ch_bam_bin_chrom)
