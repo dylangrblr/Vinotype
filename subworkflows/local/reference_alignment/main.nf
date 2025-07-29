@@ -86,12 +86,17 @@ workflow REFERENCE_ALIGNMENT {
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
 
 
-        if(!params.genozip_compress_bams){
-            GENOZIP_COMPRESS(
-                SAMTOOLS_VIEW.out.bam_bai,
-                params.genozip_license_file
-            )
-        }
+        if(params.use_genozip && params.genozip_license_file) {
+
+            if(params.genozip_compress_bams ) {
+                        GENOZIP_COMPRESS(
+                            SAMTOOLS_VIEW.out.bam,
+                            params.genozip_license_file,
+                            INDEXES.out.fasta_genozip
+                        )
+                    }
+
+        } 
 
 
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT

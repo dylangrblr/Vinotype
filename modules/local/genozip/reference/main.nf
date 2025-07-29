@@ -18,7 +18,7 @@ process GENOZIP_REFERENCE {
     path  genozip_license_file
 
     output:
-    tuple val(meta), path("*.genozip"), emit: fasta
+    tuple val(meta), path("*.genozip"), emit: fasta_genozip
     path "versions.yml"           , emit: versions
 
     when:
@@ -33,8 +33,7 @@ process GENOZIP_REFERENCE {
         --licfile ${genozip_license_file} \\
         --threads $task.cpus \\
         $args \\
-        --make-reference ${fasta} \\
-        --output ${prefix}.fasta.genozip
+        --make-reference ${fasta}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

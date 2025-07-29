@@ -2,17 +2,23 @@ process GENOZIP_COMPRESS {
     tag "$meta.id"
     label 'process_medium'
 
-    conda "${moduleDir}/environment.yml"
+//FIXME: Use the latest containers for genozip
+//    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+//        'oras://community.wave.seqera.io/library/genozip:15.0.73--5e7a11b582e9aebe':
+//        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
+
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/YOUR-TOOL-HERE':
-        'biocontainers/YOUR-TOOL-HERE' }"
+        'docker://community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348':
+        'community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348' }"
+
 
     input:
     tuple val(meta), path(bam)
-    path  genozip_license_file
+    path genozip_license_file
+    tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
-    tuple val(meta), path("*.bam"), emit: bam
+    tuple val(meta), path("*.genozip"), emit: bam_genozip
     path "versions.yml"           , emit: versions
 
     when:
@@ -27,8 +33,9 @@ process GENOZIP_COMPRESS {
         --licfile ${genozip_license_file} \\
         --threads $task.cpus \\
         $args \\
-        -o ${prefix}.bam \\
-        $bam
+        $bam \\
+        --reference ${fasta_genozip} \\
+        --output ${prefix}.bam.genozip
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

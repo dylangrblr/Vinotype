@@ -53,7 +53,7 @@ workflow INDEXES {
                 ch_fasta_genozip = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta_genozip])
             } else {
                 GENOZIP_REFERENCE(ch_fasta, params.genozip_license_file)
-                ch_fasta_genozip = GENOZIP_REFERENCE.out.fasta
+                ch_fasta_genozip = GENOZIP_REFERENCE.out.fasta_genozip
             }
         }
 
