@@ -25,7 +25,7 @@ process GENOZIP_COMPRESS {
     """
     genozip \\
         --licfile ${genozip_license_file} \\
-        -@ $task.cpus \\
+        --threads $task.cpus \\
         $args \\
         -o ${prefix}.bam \\
         $bam
