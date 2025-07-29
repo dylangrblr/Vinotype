@@ -14,6 +14,7 @@
 
 
 include { BWAMEM2_MEM                         } from '../../../modules/nf-core/bwamem2/mem/main'
+include { GENOZIP_COMPRESS                    } from '../../../modules/local/genozip/compress/main'
 include { PICARD_SORTSAM                      } from '../../../modules/nf-core/picard/sortsam/main'
 include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
 include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
@@ -83,6 +84,14 @@ workflow REFERENCE_ALIGNMENT {
             []       // no index format
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+
+
+        if(!params.genozip_compress_bams){
+            GENOZIP_COMPRESS(
+                SAMTOOLS_VIEW.out.bam_bai,
+                params.genozip_license_file
+            )
+        }
 
 
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT

@@ -46,6 +46,14 @@ workflow INDEXES {
             ch_dict_index = SAMTOOLS_DICT.out.dict
         }
 
+        // genozip reference
+        if (params.ref_fasta_genozip) {
+            ch_genozip_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta_genozip])
+        } else {
+            GENOZIP_REFERENCE(ch_fasta)
+            ch_genozip_index = GENOZIP_REFERENCE.out.index
+        }
+
 
 
         //TODO @abhi18av
