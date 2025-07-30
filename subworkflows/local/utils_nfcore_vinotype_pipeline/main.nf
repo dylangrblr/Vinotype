@@ -93,8 +93,6 @@ workflow PIPELINE_INITIALISATION {
         .set { ch_samplesheet }
 
 
-    ch_samplesheet.dump(tag: 'ch_samplesheet', pretty: true)
-
     ch_fasta = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta])
     ch_intervals_list = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_intervals_list])
 
