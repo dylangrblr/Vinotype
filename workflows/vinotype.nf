@@ -34,8 +34,18 @@ workflow VINOTYPE {
     ch_multiqc_files = Channel.empty()
 
 
+    ch_samplesheet_fastq = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'fastq' }
+                        .dump(tag: 'ch_samplesheet_fastq', pretty: true)
+
+
+    ch_samplesheet_bam = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
+                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
+
+
     QUALITY_CONTROL (
-        ch_samplesheet
+        ch_samplesheet_fastq
     )
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
@@ -45,9 +55,9 @@ workflow VINOTYPE {
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
     //
 
-
     REFERENCE_ALIGNMENT (
         ch_fasta,
+        ch_samplesheet_bam,
         QUALITY_CONTROL.out.fastp_reads
     )
     // ch_multiqc_files = ch_multiqc_files.mix()

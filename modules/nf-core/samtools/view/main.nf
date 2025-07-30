@@ -16,7 +16,7 @@ process SAMTOOLS_VIEW {
     output:
     tuple val(meta), path("${prefix}.bam"),                                    emit: bam
     tuple val(meta), path("${prefix}.${file_type}.bai"),                       emit: bai
-    tuple val(meta), path("${prefix}.bam"), path("${prefix}.bam.bai"),             emit: bam_bai
+    tuple val(meta), path("${prefix}.bam"), path("${prefix}.bam.bai"),         emit: bam_bai
     tuple val(meta), path("${prefix}.cram"),                                   emit: cram,             optional: true
     tuple val(meta), path("${prefix}.sam"),                                    emit: sam,              optional: true
     tuple val(meta), path("${prefix}.${file_type}.csi"),                       emit: csi,              optional: true

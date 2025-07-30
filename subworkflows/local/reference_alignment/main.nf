@@ -14,6 +14,8 @@
 
 
 include { BWAMEM2_MEM                         } from '../../../modules/nf-core/bwamem2/mem/main'
+include { GENOZIP_COMPRESS                    } from '../../../modules/local/genozip/compress/main'
+include { GENOZIP_DECOMPRESS                  } from '../../../modules/local/genozip/decompress/main'
 include { PICARD_SORTSAM                      } from '../../../modules/nf-core/picard/sortsam/main'
 include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
 include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
@@ -27,6 +29,7 @@ include { INDEXES              } from '../../local/indexes/main'
 workflow REFERENCE_ALIGNMENT {
     take:
         ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
+        ch_samplesheet_bam // channel: samplesheet read in from --input
         ch_reads    // tuple(meta, fq1, fq2)
 
     main:
@@ -84,7 +87,6 @@ workflow REFERENCE_ALIGNMENT {
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
 
-
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
         ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
         SAMTOOLS_FLAGSTAT_POST(
@@ -102,11 +104,35 @@ workflow REFERENCE_ALIGNMENT {
 
         //SAMTOOLS_VIEW.out.bam_bai.dump(tag:'SAMTOOLS_VIEW.out.bam_bai')
 
+        if(params.use_genozip && params.genozip_license_file) {
+
+            if(params.genozip_compress_bams ) {
+                        GENOZIP_COMPRESS(
+                            SAMTOOLS_VIEW.out.bam,
+                            params.genozip_license_file,
+                            INDEXES.out.fasta_genozip
+                        )
+                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS.out.versions.first())
+                    }
+
+
+            // If samplesheet has GENOZIP BAM files, decompress them
+            GENOZIP_DECOMPRESS(
+                ch_samplesheet_bam,
+                params.genozip_license_file,
+                INDEXES.out.fasta_genozip
+            )
+            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS.out.versions.first())
+
+            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS.out.bam_bai)
+        }
+
+
    emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
         // metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
         //flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
-        bam_bai =  SAMTOOLS_VIEW.out.bam_bai
+        bam_bai =  ch_bam_bai
         bwa_index =  INDEXES.out.bwa_index
         dict_index =  INDEXES.out.dict_index
         faidx_index = INDEXES.out.faidx_index
