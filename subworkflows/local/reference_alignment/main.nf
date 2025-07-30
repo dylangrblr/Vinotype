@@ -44,11 +44,6 @@ workflow REFERENCE_ALIGNMENT {
         BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
         ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
 
-        // ch_test_bam = Channel.fromList([
-        //         [[id:"Vs_ITA27_dong", single_end:false], "/home/opc/VINOTYPE/work/3b/eab73ea3a7c182b9b747899b7595a9/Vs_ITA27_dong.bam"],
-        //         [[id:"Vv_D25_ORLOVI", single_end:false], "/home/opc/VINOTYPE/work/a4/8069d93e6425a45175b11f9fb1e363/Vv_D25_ORLOVI.bam"]
-        //     ])
-
         // Sort SAM files
         PICARD_SORTSAM(
               //ch_test_bam,
