@@ -3,9 +3,10 @@ process PICARD_SORTSAM {
     label 'process_low'
 
     conda "${moduleDir}/environment.yml"
+    //TODO: @abhi18av update all picard containers to 2.20.3 in the environment files, as per the shell scripts
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/picard:3.3.0--hdfd78af_0' :
-        'biocontainers/picard:3.3.0--hdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/picard:2.20.3--0' :
+        'biocontainers/picard:2.20.3--0' }"
 
     input:
     tuple val(meta), path(bam)
@@ -34,9 +35,9 @@ process PICARD_SORTSAM {
     picard \\
         SortSam \\
         -Xmx${avail_mem}M \\
-        --INPUT $bam \\
-        --OUTPUT ${prefix}.bam \\
-        --SORT_ORDER $sort_order
+        I=$bam \\
+        O=${prefix}.bam \\
+        SORT_ORDER=$sort_order
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

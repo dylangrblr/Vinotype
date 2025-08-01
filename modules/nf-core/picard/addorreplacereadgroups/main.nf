@@ -4,13 +4,11 @@ process PICARD_ADDORREPLACEREADGROUPS {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/picard:3.3.0--hdfd78af_0' :
-        'biocontainers/picard:3.3.0--hdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/picard:2.20.3--0' :
+        'biocontainers/picard:2.20.3--0' }"
 
     input:
     tuple val(meta), path(reads)
-    tuple val(meta2), path(fasta)
-    tuple val(meta3), path(fasta_index)
 
     output:
     tuple val(meta), path("*.bam") , emit: bam,  optional: true
@@ -25,7 +23,6 @@ process PICARD_ADDORREPLACEREADGROUPS {
     def args = task.ext.args        ?: ''
     def prefix = task.ext.prefix    ?: "${meta.id}"
     def suffix = task.ext.suffix    ?: "${reads.getExtension()}"
-    def reference = fasta ? "--REFERENCE_SEQUENCE ${fasta}" : ""
     def avail_mem = 3072
     if (!task.memory) {
         log.info '[Picard AddOrReplaceReadGroups] Available memory not known - defaulting to 3GB. Specify process memory requirements to change this.'
@@ -40,9 +37,8 @@ process PICARD_ADDORREPLACEREADGROUPS {
         -Xmx${avail_mem}M \\
         AddOrReplaceReadGroups \\
         $args \\
-        $reference \\
-        --INPUT ${reads} \\
-        --OUTPUT ${prefix}.${suffix}
+        I=${reads} \\
+        O=${prefix}.${suffix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

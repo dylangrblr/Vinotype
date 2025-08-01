@@ -1,34 +1,75 @@
-#!/usr/bin/env nextflow
-nextflow.enable.dsl=2
-
 /*
- * Variant calling subworkflow: BAM → GVCF → Joint Genotyping
+ * Variant calling subworkflow: BAM → per-chromosome BAM → GVCF
  * Inputs:
  *   - ch_bam: tuple(meta, bam file)
- *   - val_ref_fasta: reference fasta file
+ *   - ch_fasta: tuple(meta, fasta file)
  * Outputs:
- *   - vcf_files: tuple(meta, vcf file)
+ *   - gvcf_files: tuple(meta, chr, gvcf file)
  *   - versions: version info from all modules
  */
 
+include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/main.nf'
+include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
+include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
-include { GATK4_GENOTYPEGVCFS }   from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
 
 workflow VARIANT_CALLING {
+
     take:
-        ch_bam
-        val_ref_fasta
+        ch_bam_bai      // tuple(meta, bam, bai)
+        ch_fasta    // tuple(meta, fasta)
+        ch_faidx_index  // tuple(meta, faidx_index)
+        ch_dict_index  // tuple(meta, dict_index)
+
 
     main:
-        // 1. HaplotypeCaller per sample
-        gvcf_out = GATK4_HAPLOTYPECALLER(ch_bam.map { tuple(it[0], it[1], val_ref_fasta) })
-        // 2. Joint genotyping (assume all GVCFs are merged in one call)
-        genotype_out = GATK4_GENOTYPEGVCFS(gvcf_out.out.gvcf_files.map { tuple(it[0], it[1], val_ref_fasta) })
 
         // Collect version info
-        versions = gvcf_out.out.versions.mix(genotype_out.out.versions)
+        ch_versions = Channel.empty()
+
+
+        // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
+        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
+        GATK4_HAPLOTYPECALLER(
+            ch_bam_bai_extended,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index,
+            [[],[]],
+            [[],[]],
+        )
+
+        // // Get chromosome names for each BAM
+        // SAMTOOLS_IDXSTATS(ch_bam_bai)
+        // ch_chr_info = SAMTOOLS_IDXSTATS.out.idxstats.map { meta, idxstats_file ->
+        //     def chromosomes = file(idxstats_file).text.readLines()
+        //         .findAll { !it.startsWith('*') }
+        //         .collect { it.split('\t')[0] }
+        //     chromosomes.collect { chr -> tuple(meta, chr) }
+        // }.flatten()
+
+        // // Subset BAMs by chromosome
+        // ch_bam_chr = ch_chr_info.map { meta, chr ->
+        //     def bam = ch_bam_bai.filter { it[0] == meta }[0][1]
+        //     tuple(meta, bam, chr)
+        // }
+        // SAMTOOLS_VIEW(ch_bam_chr)
+
+        // // Run HaplotypeCaller per chromosome
+        // ch_hc_input = SAMTOOLS_VIEW.out.bam.map { meta, chr_bam, chr ->
+        //     tuple(meta, chr_bam, chr, ch_fasta.filter { it[0] == meta }[0][1])
+        // }
+        // GATK4_HAPLOTYPECALLER(ch_hc_input)
+
+
+        // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
+        // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
+        // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
+        // ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
     emit:
-        vcf_files = genotype_out.out.vcf_files.map { tuple(it[0], it[1]) }
-        versions = versions
+        gvcf_tbi_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi
+        gvcf_files = GATK4_HAPLOTYPECALLER.out.vcf
+        tbi_files = GATK4_HAPLOTYPECALLER.out.tbi
+        versions   = ch_versions
 }

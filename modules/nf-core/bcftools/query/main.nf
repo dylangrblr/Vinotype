@@ -1,5 +1,5 @@
 process BCFTOOLS_QUERY {
-    tag "$meta.id"
+    tag "$meta.id - ${annotation_type}"
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
@@ -9,6 +9,7 @@ process BCFTOOLS_QUERY {
 
     input:
     tuple val(meta), path(vcf), path(tbi)
+    each annotation_type
     path regions
     path targets
     path samples
@@ -32,6 +33,7 @@ process BCFTOOLS_QUERY {
         $regions_file \\
         $targets_file \\
         $samples_file \\
+        --format $annotation_type \\
         $args \\
         $vcf \\
         > ${prefix}.${suffix}

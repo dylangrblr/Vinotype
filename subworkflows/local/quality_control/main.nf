@@ -1,7 +1,8 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { FASTQC } from '../../../modules/nf-core/fastqc/main.nf'
+include { FASTQC as FASTQC_PRE } from '../../../modules/nf-core/fastqc/main.nf'
+include { FASTQC as FASTQC_POST } from '../../../modules/nf-core/fastqc/main.nf'
 include { FASTP }  from '../../../modules/nf-core/fastp/main.nf'
 
 workflow QUALITY_CONTROL {
@@ -10,15 +11,14 @@ workflow QUALITY_CONTROL {
 
     main:
         // Run FastQC before filtering
-        fastqc_pre = FASTQC(reads_ch)
+        FASTQC_PRE(reads_ch)
+
         // Run fastp
-        fastp_out = FASTP(reads_ch)
-        // Run FastQC after filtering
-        fastqc_post = FASTQC(fastp_out.out.fastp_outputs.map { tuple(it[0], it[1]) })
+        FASTP(reads_ch, [], false, false, false)
 
     emit:
-        fastqc_pre_reports = fastqc_pre.out.fastqc_reports
-        fastp_outputs      = fastp_out.out.fastp_outputs
-        fastqc_post_reports = fastqc_post.out.fastqc_reports
-        versions = fastqc_pre.out.versions.mix(fastp_out.out.versions, fastqc_post.out.versions)
+        fastqc_pre_reports_zip = FASTQC_PRE.out.zip
+        fastp_json = FASTP.out.json
+        fastp_reads = FASTP.out.reads
+        versions = FASTQC_PRE.out.versions.mix(FASTP.out.versions)
 }

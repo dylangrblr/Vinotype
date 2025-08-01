@@ -23,7 +23,7 @@ process SAMTOOLS_SORT {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = "${task.ext.prefix}.sorted" ?: "${meta.id}.sorted"
     def extension = args.contains("--output-fmt sam") ? "sam" :
                     args.contains("--output-fmt cram") ? "cram" :
                     "bam"
@@ -39,7 +39,7 @@ process SAMTOOLS_SORT {
         -T ${prefix} \\
         --threads $task.cpus \\
         ${reference} \\
-        -o ${prefix}.${extension} \\
+        -o ${prefix}.sorted.${extension} \\
         -
 
     cat <<-END_VERSIONS > versions.yml

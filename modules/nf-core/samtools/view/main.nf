@@ -14,10 +14,11 @@ process SAMTOOLS_VIEW {
     val index_format
 
     output:
-    tuple val(meta), path("${prefix}.bam"),                                    emit: bam,              optional: true
+    tuple val(meta), path("${prefix}.bam"),                                    emit: bam
+    tuple val(meta), path("${prefix}.${file_type}.bai"),                       emit: bai
+    tuple val(meta), path("${prefix}.bam"), path("${prefix}.bam.bai"),         emit: bam_bai
     tuple val(meta), path("${prefix}.cram"),                                   emit: cram,             optional: true
     tuple val(meta), path("${prefix}.sam"),                                    emit: sam,              optional: true
-    tuple val(meta), path("${prefix}.${file_type}.bai"),                       emit: bai,              optional: true
     tuple val(meta), path("${prefix}.${file_type}.csi"),                       emit: csi,              optional: true
     tuple val(meta), path("${prefix}.${file_type}.crai"),                      emit: crai,             optional: true
     tuple val(meta), path("${prefix}.unselected.${file_type}"),                emit: unselected,       optional: true
@@ -59,6 +60,8 @@ process SAMTOOLS_VIEW {
         -o ${output_file} \\
         $input \\
         $args2
+
+    samtools index ${output_file}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

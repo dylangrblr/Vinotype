@@ -3,12 +3,17 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_vinotype_pipeline'
+
+include { QUALITY_CONTROL } from '../subworkflows/local/quality_control'
+include { REFERENCE_ALIGNMENT } from '../subworkflows/local/reference_alignment'
+include { VARIANT_CALLING } from '../subworkflows/local/variant_calling'
+include { JOINT_GENOTYPING } from '../subworkflows/local/joint_genotyping'
+include { VARIANT_FILTERING } from '../subworkflows/local/variant_filtering'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -20,18 +25,88 @@ workflow VINOTYPE {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    ch_fasta      // channel: fasta file read in from --fasta
+    ch_intervals_list // channel: intervals list file read in from --intervals_list
+
     main:
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
-    //
-    // MODULE: Run FastQC
-    //
-    FASTQC (
-        ch_samplesheet
+
+
+    ch_samplesheet_fastq = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'fastq' }
+                        .dump(tag: 'ch_samplesheet_fastq', pretty: true)
+
+
+    ch_samplesheet_bam = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
+                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
+
+
+    QUALITY_CONTROL (
+        ch_samplesheet_fastq
     )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+
+    //
+    // SUBWORKFLOW: REFERENCE_ALIGNMENT
+    //
+
+    REFERENCE_ALIGNMENT (
+        ch_fasta,
+        ch_samplesheet_bam,
+        QUALITY_CONTROL.out.fastp_reads
+    )
+    // ch_multiqc_files = ch_multiqc_files.mix()
+    // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+
+    //
+    // SUBWORKFLOW: VARIANT_CALLING
+    //
+    VARIANT_CALLING (
+        REFERENCE_ALIGNMENT.out.bam_bai,
+        ch_fasta,
+        REFERENCE_ALIGNMENT.out.faidx_index,
+        REFERENCE_ALIGNMENT.out.dict_index,
+    )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+
+    //
+    // SUBWORKFLOW: JOINT_GENOTYPING
+    //
+    JOINT_GENOTYPING (
+        VARIANT_CALLING.out.gvcf_tbi_files,
+        ch_intervals_list,
+        ch_fasta,
+        REFERENCE_ALIGNMENT.out.faidx_index,
+        REFERENCE_ALIGNMENT.out.dict_index,
+        VARIANT_CALLING.out.gvcf_files,
+        VARIANT_CALLING.out.tbi_files,
+    )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+
+    //
+    // SUBWORKFLOW: JOINT_GENOTYPING
+    //
+    VARIANT_FILTERING (
+        JOINT_GENOTYPING.out.gvcf_tbi_files,
+        ch_fasta,
+        REFERENCE_ALIGNMENT.out.faidx_index,
+        REFERENCE_ALIGNMENT.out.dict_index,
+        ch_intervals_list,
+    )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+
+
 
     //
     // Collate and save software versions
@@ -85,7 +160,8 @@ workflow VINOTYPE {
         []
     )
 
-    emit:multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+    emit:
+    multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
     versions       = ch_versions                 // channel: [ path(versions.yml) ]
 
 }

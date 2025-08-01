@@ -25,18 +25,21 @@ include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_vino
 //
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
-workflow DYLANGRBLR_VINOTYPE {
+workflow DYLANGRBLR {
 
     take:
     samplesheet // channel: samplesheet read in from --input
+    fasta // channel: fasta file read in from --fasta
+    intervals_list // channel: intervals list file read in from --intervals_list
 
     main:
-
     //
     // WORKFLOW: Run pipeline
     //
     VINOTYPE (
-        samplesheet
+        samplesheet,
+        fasta,
+        intervals_list
     )
     emit:
     multiqc_report = VINOTYPE.out.multiqc_report // channel: /path/to/multiqc_report.html
@@ -65,10 +68,13 @@ workflow {
     //
     // WORKFLOW: Run main workflow
     //
-    DYLANGRBLR_VINOTYPE (
-        PIPELINE_INITIALISATION.out.samplesheet
+
+    DYLANGRBLR (
+        PIPELINE_INITIALISATION.out.samplesheet,
+        PIPELINE_INITIALISATION.out.fasta,
+        PIPELINE_INITIALISATION.out.intervals_list
     )
-    //
+
     // SUBWORKFLOW: Run completion tasks
     //
     PIPELINE_COMPLETION (
@@ -78,7 +84,7 @@ workflow {
         params.outdir,
         params.monochrome_logs,
         params.hook_url,
-        DYLANGRBLR_VINOTYPE.out.multiqc_report
+        DYLANGRBLR.out.multiqc_report
     )
 }
 
