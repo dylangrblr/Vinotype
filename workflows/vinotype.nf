@@ -39,10 +39,6 @@ workflow VINOTYPE {
                         .dump(tag: 'ch_samplesheet_fastq', pretty: true)
 
 
-    ch_samplesheet_bam = ch_samplesheet
-                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
-                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
-
 
     QUALITY_CONTROL (
         ch_samplesheet_fastq
@@ -55,9 +51,14 @@ workflow VINOTYPE {
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
     //
 
+    ch_samplesheet_bam = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
+                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
+
+
     REFERENCE_ALIGNMENT (
-        ch_fasta,
         ch_samplesheet_bam,
+        ch_fasta,
         QUALITY_CONTROL.out.fastp_reads
     )
     // ch_multiqc_files = ch_multiqc_files.mix()
@@ -66,7 +67,15 @@ workflow VINOTYPE {
     //
     // SUBWORKFLOW: VARIANT_CALLING
     //
+
+
+    ch_samplesheet_gvcf = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'gvcf_genozip' }
+                        .dump(tag: 'ch_samplesheet_gvcf', pretty: true)
+
+
     VARIANT_CALLING (
+        ch_samplesheet_gvcf,
         REFERENCE_ALIGNMENT.out.bam_bai,
         ch_fasta,
         REFERENCE_ALIGNMENT.out.faidx_index,

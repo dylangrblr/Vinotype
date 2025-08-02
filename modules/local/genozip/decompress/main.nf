@@ -41,7 +41,6 @@ process GENOZIP_DECOMPRESS {
         $args \\
         $bam_or_gvcf \\
         --no-cache \\
-        --index \\
         --reference ${fasta_genozip} \\
         --output ${prefix}
 

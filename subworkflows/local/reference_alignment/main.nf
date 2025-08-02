@@ -28,8 +28,8 @@ include { INDEXES              } from '../../local/indexes/main'
 
 workflow REFERENCE_ALIGNMENT {
     take:
-        ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
         ch_samplesheet_bam // channel: samplesheet read in from --input
+        ch_fasta  // channel: [ val(meta), path(fasta) ] (optional, if bwa_index is not provided)
         ch_reads    // tuple(meta, fq1, fq2)
 
     main:
