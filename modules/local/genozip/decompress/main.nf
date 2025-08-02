@@ -2,7 +2,7 @@ process GENOZIP_DECOMPRESS {
     tag "$meta.id"
     label 'process_medium'
 
-//FIXME: Use the latest containers for genozip. 
+//FIXME: Use the latest containers for genozip.
 //NOTE: Also needs samtools in the container for generating index, check the environment.yml file
 
 //    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -10,18 +10,22 @@ process GENOZIP_DECOMPRESS {
 //        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/samtools_genozip:f15b7c96d5843aea':
-        'community.wave.seqera.io/library/samtools_genozip:f15b7c96d5843aea' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50':
+        'community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50' }"
 
 
     input:
-    tuple val(meta), path(bam)
+    tuple val(meta), path(bam_or_gvcf)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
-    tuple val(meta), path("*.bam"), emit: bam
-    tuple val(meta), path("*.bam"), path("*bai"), emit: bam_bai
+    tuple val(meta), path("*.bam"), emit: bam, optional: true
+    tuple val(meta), path("*.bam"), path("*bai"), emit: bam_bai, optional: true
+
+    tuple val(meta), path("*.g.vcf"), emit: gvcf, optional: true
+    tuple val(meta), path("*.g.vcf"), path("*tbi"), emit: gvcf_tbi, optional: true
+
     path "versions.yml"           , emit: versions
 
     when:
@@ -35,11 +39,11 @@ process GENOZIP_DECOMPRESS {
     genounzip \\
         --threads $task.cpus \\
         $args \\
-        $bam \\
+        $bam_or_gvcf \\
         --no-cache \\
         --index \\
         --reference ${fasta_genozip} \\
-        --output ${prefix}.bam
+        --output ${prefix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -52,7 +56,7 @@ process GENOZIP_DECOMPRESS {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    
+
     touch ${prefix}.bam
 
     cat <<-END_VERSIONS > versions.yml
@@ -61,4 +65,3 @@ process GENOZIP_DECOMPRESS {
     END_VERSIONS
     """
 }
-

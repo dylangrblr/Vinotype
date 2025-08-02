@@ -14,8 +14,8 @@
 
 
 include { BWAMEM2_MEM                         } from '../../../modules/nf-core/bwamem2/mem/main'
-include { GENOZIP_COMPRESS                    } from '../../../modules/local/genozip/compress/main'
-include { GENOZIP_DECOMPRESS                  } from '../../../modules/local/genozip/decompress/main'
+include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__BAM      } from '../../../modules/local/genozip/compress/main'
+include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__BAM  } from '../../../modules/local/genozip/decompress/main'
 include { PICARD_SORTSAM                      } from '../../../modules/nf-core/picard/sortsam/main'
 include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
 include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
@@ -102,24 +102,24 @@ workflow REFERENCE_ALIGNMENT {
         if(params.use_genozip && params.genozip_license_file) {
 
             if(params.genozip_compress_bams ) {
-                        GENOZIP_COMPRESS(
+                        GENOZIP_COMPRESS__BAM(
                             SAMTOOLS_VIEW.out.bam,
                             params.genozip_license_file,
                             INDEXES.out.fasta_genozip
                         )
-                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS.out.versions.first())
+                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
                     }
 
 
             // If samplesheet has GENOZIP BAM files, decompress them
-            GENOZIP_DECOMPRESS(
+            GENOZIP_DECOMPRESS__BAM(
                 ch_samplesheet_bam,
                 params.genozip_license_file,
                 INDEXES.out.fasta_genozip
             )
-            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS.out.versions.first())
+            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
 
-            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS.out.bam_bai)
+            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
         }
 
 
