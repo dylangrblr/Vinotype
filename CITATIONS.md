@@ -18,6 +18,26 @@
 
 > Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. doi: 10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PubMed PMID: 27312411; PubMed Central PMCID: PMC5039924.
 
+- [fastp] (https://academic.oup.com/bioinformatics/article/34/17/i884/5093234)
+  
+> Chen S, Zhou Y, Chen Y, Gu J. Fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics. 2018 Sept 08;34(17):i884-i890. doi:10.1093/bioinformatics/bty560.
+
+- [bwa2] (https://ieeexplore.ieee.org/document/8820962)
+
+> Md V, Misra S, Li H, Aluru, S. Efficient architecture-aware acceleration of BWA-MEM for mutlicore systems. Presented at: IEEE International Parallel and Distributed Processing Symposium (IPDPS); 2019 May 20-24; Rio de la Prata, Brazil. doi: 10.1109/IPDPS.2019.000041.  
+
+- [samtools] (https://academic.oup.com/gigascience/article/10/2/giab008/6137722?login=true)
+
+> Danecek P, Bonfield JK, Liddle J, Marshall J, Ohan V, Pollard MO, Whitwham A, Keane T, McCarthy SA, Davies RM, Li H. Twelve years of SAMtools and BCFtools. GigaScience. 2021 Feb 2;10(2). doi: 10.1093/gigascience/giab008.
+
+- [picard] (https://broadinstitute.github.io/picard/)
+
+> Broad Institute (2019). Picard toolkit [Online].
+
+- [gatk]
+
+> McKenna A, Hanna M, Banks E, Sivachenko A, Cibulskis K, Kernytsky A, Garimella K, Altshuler D, Gabriek S, Daly M, DePristo MA. The genome analysis toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research. 2010 Jul 19;20:1297-1303. doi: 10.1101/gt.107524.110.  
+
 ## Software packaging/containerisation tools
 
 - [Anaconda](https://anaconda.com)
