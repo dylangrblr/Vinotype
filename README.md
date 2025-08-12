@@ -12,7 +12,9 @@
 
 ## Introduction
 
-**dylangrblr/vinotype** is a bioinformatics pipeline that ...
+**Vinotype (dylangrblr/Vinotype)** is a Nextflow DSL2 pipeline for automated variant discovery (SNPs and short InDels) from short-read whole-genome-sequencing data. While first developed to meet the need for a standardised, effective workflow for processing Illumina resequencing data of grapevine (*Vitis spp.*), its architecture incorporates measures to account for, and minimise, many of the biases inherent to short-read sequencing technologies. Consequently, the workflow remains broadly applicable and can be readily employed for any use case, given the availability of a suitable reference genome and paired-end sequencing data. 
+
+Vinotype is distributed with full Docker and Singularity support, ensuring reproducible execution across diverse compute environments, including local systems, HPC clusters, and cloud platforms. The pipeline accepts raw paired-end FASTQ (or fq.gz) files together with a reference genome in FASTA format (.fasta/.fa), and processes these through defined stages including quality control, read alignment, duplicate marking, variant calling, and variant filtering. Outputs include standardised VCF files, aggregated quality control reports, and detailed process logs, providing a complete and transparent record from raw data to final variant calls. 
 
 <!-- TODO nf-core:
    Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
