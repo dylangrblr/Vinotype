@@ -10,8 +10,9 @@ process GENOZIP_REFERENCE {
 //        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348':
-        'community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50':
+        'community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50' }"
+
 
     input:
     tuple val(meta), path(fasta)
@@ -46,8 +47,8 @@ process GENOZIP_REFERENCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    
-    touch ${prefix}.bam
+
+    touch ${prefix}.ref.genozip
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

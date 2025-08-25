@@ -4,4 +4,6 @@ channels:
 - conda-forge
 - bioconda
 dependencies:
-- conda-forge::genozip=15.0.73
+- bioconda::bcftools=1.21
+- bioconda::samtools=1.21
+- conda-forge::genozip=15.0.16

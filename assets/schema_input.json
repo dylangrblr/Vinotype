@@ -33,6 +33,13 @@
                 "pattern": "^\\S+\\.bam\\.genozip$",
                 "format": "file-path",
                 "exists": true
+            },
+             "gvcf": {
+                "errorMessage": "GVCF file cannot contain spaces and must have extension '.g.vcf.genozip'",
+                "type": "string",
+                "pattern": "^\\S+\\.g\\.vcf\\.genozip$",
+                "format": "file-path",
+                "exists": true
             }
         },
         "required": ["sample"]

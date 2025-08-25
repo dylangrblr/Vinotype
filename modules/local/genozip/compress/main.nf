@@ -8,17 +8,17 @@ process GENOZIP_COMPRESS {
 //        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348':
-        'community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50':
+        'community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50' }"
 
 
     input:
-    tuple val(meta), path(bam)
+    tuple val(meta), path(bam_or_gvcf)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
-    tuple val(meta), path("*.genozip"), emit: bam_genozip
+    tuple val(meta), path("*.genozip"), emit: genozipped
     path "versions.yml"           , emit: versions
 
     when:
@@ -28,14 +28,15 @@ process GENOZIP_COMPRESS {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
+
     """
     genozip \\
         --licfile ${genozip_license_file} \\
         --threads $task.cpus \\
         $args \\
-        $bam \\
+        $bam_or_gvcf \\
         --reference ${fasta_genozip} \\
-        --output ${prefix}.bam.genozip
+        --output ${prefix}.genozip
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -48,8 +49,7 @@ process GENOZIP_COMPRESS {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    
-    touch ${prefix}.bam
+    touch ${prefix}.genozip
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
