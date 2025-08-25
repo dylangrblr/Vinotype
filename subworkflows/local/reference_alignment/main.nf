@@ -131,5 +131,6 @@ workflow REFERENCE_ALIGNMENT {
         bwa_index =  INDEXES.out.bwa_index
         dict_index =  INDEXES.out.dict_index
         faidx_index = INDEXES.out.faidx_index
+        fasta_genozip = INDEXES.out.fasta_genozip
         versions = ch_versions                      // versions from all modules
 }
