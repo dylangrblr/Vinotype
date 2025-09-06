@@ -49,6 +49,7 @@ process UTILS_FINALFILTER {
         bcftools: \$(bcftools --version 2>&1 | head -n1 | sed 's/^.*bcftools //; s/ .*\$//')
         vcftools: \$(vcftools --version 2>&1 | head -n1 | sed 's/^.*VCFtools (//; s/).*\$//')
         bgzip: \$(bgzip --version 2>&1 | head -n1 | sed 's/^.*bgzip //; s/ .*\$//')
+        tabix: \$(tabix --version 2>&1 | head -n1 | sed 's/^.*tabix //; s/ .*\$//')
     END_VERSIONS
     """
 

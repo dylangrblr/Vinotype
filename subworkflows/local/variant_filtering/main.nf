@@ -110,7 +110,6 @@ workflow VARIANT_FILTERING {
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
 */
 
-
         UTILS_FINALFILTER(
             ch_snp_vcf_tbi,
             ch_fasta,
