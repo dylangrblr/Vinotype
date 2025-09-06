@@ -95,11 +95,17 @@ workflow VARIANT_FILTERING {
             ch_dict_index
         )
 
+        ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
+
+        // 2. Index SNP VCF for downstream querying and filtering
+        BCFTOOLS_INDEX(ch_snp_vcf)
+        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
         // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
 
         // 3. Extract annotation fields and plot distributions
         BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
 
+        ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions.first())
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt
 
 /*
