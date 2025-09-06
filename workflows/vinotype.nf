@@ -61,13 +61,13 @@ workflow VINOTYPE {
         ch_fasta,
         QUALITY_CONTROL.out.fastp_reads
     )
-    ch_multiqc_files = ch_multiqc_files.mix()
+    //ch_multiqc_files = ch_multiqc_files.mix()
     ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.multiqc_files.collect{it[1]}.ifEmpty([]))
 
     //
     // SUBWORKFLOW: VARIANT_CALLING
     //
-
 
     ch_samplesheet_gvcf = ch_samplesheet
                         .filter { meta, files -> meta.data_type == 'gvcf_genozip' }

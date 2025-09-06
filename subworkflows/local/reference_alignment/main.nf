@@ -35,11 +35,13 @@ workflow REFERENCE_ALIGNMENT {
     main:
 
         ch_versions = Channel.empty()
+        ch_multiqc_files = Channel.empty()
+
 
         INDEXES (
             ch_fasta
         )
-
+        ch_versions = ch_versions.mix(INDEXES.out.versions.first())
 
         BWAMEM2_MEM ( ch_reads, INDEXES.out.bwa_index, ch_fasta, false )
         ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
@@ -88,6 +90,9 @@ workflow REFERENCE_ALIGNMENT {
             ch_bam_for_flagstat_post
         )
         ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
+
+        ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_FLAGSTAT_POST.out.flagstat.collect{it[1]}.ifEmpty([]))
+
         // // Combine flagstat reports
         // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
         //     .join(SAMTOOLS_FLAGSTAT_POST.out.flagstat)
@@ -133,4 +138,5 @@ workflow REFERENCE_ALIGNMENT {
         faidx_index = INDEXES.out.faidx_index
         fasta_genozip = INDEXES.out.fasta_genozip
         versions = ch_versions                      // versions from all modules
+        multiqc_files = ch_multiqc_files           // multiqc files from all modules
 }
