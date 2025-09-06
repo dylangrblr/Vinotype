@@ -45,7 +45,7 @@ workflow VINOTYPE {
     )
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
-    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions)
 
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
@@ -83,7 +83,7 @@ workflow VINOTYPE {
         REFERENCE_ALIGNMENT.out.fasta_genozip
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions)
 
 
     //
@@ -99,7 +99,7 @@ workflow VINOTYPE {
         VARIANT_CALLING.out.tbi_files,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions.first())
+    ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
 
 
     //
@@ -113,7 +113,7 @@ workflow VINOTYPE {
         ch_intervals_list,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
 
 
     ch_versions.dump(tag: 'ch_versions', pretty: true)

@@ -51,7 +51,7 @@ workflow VARIANT_FILTERING {
             ch_dict_index,
             'snp'
         )
-        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions)
+        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions.first())
 
         ch_snp_vcf = GATK4_SELECTVARIANTS__SNP.out.vcf
         ch_snp_vcf_tbi = GATK4_SELECTVARIANTS__SNP.out.vcf_tbi
@@ -65,7 +65,7 @@ workflow VARIANT_FILTERING {
             'indel'
         )
         ch_indel_vcf = GATK4_SELECTVARIANTS__INDEL.out.vcf
-        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions)
+        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions.first())
 
         list_annotation_types = [
             "[ %DP]",
@@ -94,16 +94,16 @@ workflow VARIANT_FILTERING {
             ch_faidx_index,
             ch_dict_index
         )
-        ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions)
+        ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
 
         // 2. Index SNP VCF for downstream querying and filtering
         BCFTOOLS_INDEX(ch_snp_vcf)
-        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
+        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
         // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
 
         // 3. Extract annotation fields and plot distributions
         BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
-        ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions)
+        ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions.first())
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt
 
 /*
@@ -115,7 +115,7 @@ workflow VARIANT_FILTERING {
             ch_fasta,
             ch_faidx_index
         )
-        ch_versions = ch_versions.mix(UTILS_FINALFILTER.out.versions) 
+        ch_versions = ch_versions.mix(UTILS_FINALFILTER.out.versions.first()) 
 
     emit:
         // snp_vcf        = ch_snp_vcf

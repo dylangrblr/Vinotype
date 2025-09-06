@@ -93,7 +93,7 @@ workflow JOINT_GENOTYPING {
             ch_dict_index,
             ch_intervals_list
         )
-        ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
+        ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions.first())
 
 
         // 8. GenotypeGVCFs
@@ -104,7 +104,7 @@ workflow JOINT_GENOTYPING {
                   ch_faidx_index, 
                   ch_dict_index)
 
-        ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
+        ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions.first())
 
     //GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
 

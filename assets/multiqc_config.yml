@@ -12,3 +12,13 @@ report_section_order:
 export_plots: true
 
 disable_version_detection: true
+
+top_modules:
+  - general
+  - fastqc
+  - fastp
+  - picard
+  - samtools
+  - bwa
+  - gatk
+  - bcftools
