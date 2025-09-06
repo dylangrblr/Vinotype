@@ -99,7 +99,7 @@ workflow VINOTYPE {
         VARIANT_CALLING.out.tbi_files,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions.first())
 
 
     //
@@ -116,7 +116,7 @@ workflow VINOTYPE {
     ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions.first())
 
 
-
+    ch_versions.dump(tag: 'ch_versions', pretty: true)
 
     //
     // Collate and save software versions
@@ -128,7 +128,6 @@ workflow VINOTYPE {
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
-
 
     //
     // MODULE: MultiQC
