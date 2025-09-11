@@ -45,7 +45,7 @@ workflow VINOTYPE {
     )
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
-    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions)
 
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
@@ -61,13 +61,13 @@ workflow VINOTYPE {
         ch_fasta,
         QUALITY_CONTROL.out.fastp_reads
     )
-    // ch_multiqc_files = ch_multiqc_files.mix()
-    // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    //ch_multiqc_files = ch_multiqc_files.mix()
+    ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.multiqc_files.collect{it[1]}.ifEmpty([]))
 
     //
     // SUBWORKFLOW: VARIANT_CALLING
     //
-
 
     ch_samplesheet_gvcf = ch_samplesheet
                         .filter { meta, files -> meta.data_type == 'gvcf_genozip' }
@@ -83,7 +83,7 @@ workflow VINOTYPE {
         REFERENCE_ALIGNMENT.out.fasta_genozip
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions)
 
 
     //
@@ -99,7 +99,7 @@ workflow VINOTYPE {
         VARIANT_CALLING.out.tbi_files,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
 
 
     //
@@ -113,10 +113,10 @@ workflow VINOTYPE {
         ch_intervals_list,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
 
 
-
+    ch_versions.dump(tag: 'ch_versions', pretty: true)
 
     //
     // Collate and save software versions
@@ -128,7 +128,6 @@ workflow VINOTYPE {
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
-
 
     //
     // MODULE: MultiQC

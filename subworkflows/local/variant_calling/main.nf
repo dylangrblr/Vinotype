@@ -42,7 +42,7 @@ workflow VARIANT_CALLING {
             [[],[]],
             [[],[]],
         )
-
+        ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
         if(params.use_genozip && params.genozip_license_file) {
 
@@ -100,7 +100,6 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
-        // ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
     emit:
         gvcf_tbi_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi
