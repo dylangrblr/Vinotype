@@ -1,0 +1,3 @@
+sample,fastq_1,fastq_2,bam,gvcf
+subset_test_Vv_842_CORBEAU_dong,https://zenodo.org/records/17062459/files/subset_test_Vv_842_CORBEAU_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/subset_test_Vv_842_CORBEAU_dong_r2.fq.gz?download=1,,
+subset_test_Vv_B60_CRIMPOSIE_dong,https://zenodo.org/records/17062459/files/subset_test_Vv_B60_CRIMPOSIE_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/subset_test_Vv_B60_CRIMPOSIE_dong_r2.fq.gz?download=1,,
