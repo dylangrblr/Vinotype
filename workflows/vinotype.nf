@@ -102,6 +102,10 @@ workflow VINOTYPE {
     ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
 
 
+
+    //------------------------------
+    // TODO: @abhi18av VARIANT_ANNOTATION (PRE/POST) variant_filtering
+
     //
     // SUBWORKFLOW: JOINT_GENOTYPING
     //
@@ -114,6 +118,10 @@ workflow VINOTYPE {
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
+
+
+
+    //------------------------------
 
 
     ch_versions.dump(tag: 'ch_versions', pretty: true)
