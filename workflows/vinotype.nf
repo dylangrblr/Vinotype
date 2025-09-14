@@ -119,18 +119,12 @@ workflow VINOTYPE {
     ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
 
 
-    VARIANT_EFFECT_PREDICTION (
-        VARIANT_FILTERING.out.gvcf_tbi,
-        params.snpeff_db_name,
-        params.snpeff_db,
-        params.snpeff_config
-    )
 
 
     //------------------------------
 
 
-    // ch_versions.dump(tag: 'ch_versions', pretty: true)
+
 
     //
     // Collate and save software versions
