@@ -131,7 +131,6 @@ workflow VINOTYPE {
     //------------------------------
 
 
-
     // ch_versions.dump(tag: 'ch_versions', pretty: true)
 
     //
