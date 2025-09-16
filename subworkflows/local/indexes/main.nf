@@ -1,4 +1,3 @@
-
 include { BWA_INDEX          } from '../../../modules/nf-core/bwa/index/main'
 include { BWAMEM2_INDEX      } from '../../../modules/nf-core/bwamem2/index/main'
 include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
@@ -23,6 +22,13 @@ workflow INDEXES {
         ch_fasta
 
     main:
+
+        ch_fasta_genozip = Channel.empty()
+        ch_bwa_index = Channel.empty()
+        ch_faidx_index = Channel.empty()
+        ch_dict_index = Channel.empty()
+        ch_versions = Channel.empty()
+
         // BWA index
         if (params.ref_bwa_index) {
             ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_bwa_index])
