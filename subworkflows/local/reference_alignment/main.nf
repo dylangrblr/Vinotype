@@ -36,6 +36,7 @@ workflow REFERENCE_ALIGNMENT {
 
         ch_versions = Channel.empty()
         ch_multiqc_files = Channel.empty()
+        ch_bam_bai = Channel.empty()
 
 
         INDEXES (
