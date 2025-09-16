@@ -23,11 +23,11 @@ workflow INDEXES {
 
     main:
 
+        ch_versions = Channel.empty()
         ch_fasta_genozip = Channel.empty()
         ch_bwa_index = Channel.empty()
         ch_faidx_index = Channel.empty()
         ch_dict_index = Channel.empty()
-        ch_versions = Channel.empty()
 
         // BWA index
         if (params.ref_bwa_index) {
@@ -35,6 +35,7 @@ workflow INDEXES {
         } else {
             BWAMEM2_INDEX(ch_fasta)
             ch_bwa_index = BWAMEM2_INDEX.out.index
+            ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
         }
 
         // samtools faidx
@@ -43,6 +44,7 @@ workflow INDEXES {
         } else {
             SAMTOOLS_FAIDX(ch_fasta.map { meta, fasta_ -> [meta, fasta_, []] }, false)
             ch_faidx_index = SAMTOOLS_FAIDX.out.fai
+            ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         }
 
         // samtools dict
@@ -51,6 +53,7 @@ workflow INDEXES {
         } else {
             SAMTOOLS_DICT(ch_fasta)
             ch_dict_index = SAMTOOLS_DICT.out.dict
+            ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
         }
 
         // genozip reference
@@ -60,6 +63,7 @@ workflow INDEXES {
             } else {
                 GENOZIP_REFERENCE(ch_fasta, params.genozip_license_file)
                 ch_fasta_genozip = GENOZIP_REFERENCE.out.fasta_genozip
+                ch_versions = ch_versions.mix(GENOZIP_REFERENCE.out.versions)
             }
         }
 
@@ -71,14 +75,6 @@ workflow INDEXES {
         //     UTILS_INTERVALS_LIST(ch_fasta)
         //     ch_intervals_list = UTILS_INTERVALS_LIST.out.intervals
         // }
-
-
-        // Collect version info only for generated outputs
-        ch_versions = Channel.empty()
-        if (!params.ref_bwa_index)      ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
-        if (!params.ref_samtools_faidx) ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
-        if (!params.ref_samtools_dict)  ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
-        if (!params.ref_fasta_genozip)      ch_versions = ch_versions.mix(GENOZIP_REFERENCE.out.versions)
 
 
     emit:
