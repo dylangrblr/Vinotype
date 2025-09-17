@@ -51,6 +51,7 @@ def find_matching_files(fasta_dir, var_dir):
     matches = []
 
 
+    #List all protein files in fasta input dir
     protein_files = [f for f in os.listdir(fasta_dir) if f.endswith('.seq.fasta')]
 
     for protein_file in protein_files:
@@ -330,6 +331,7 @@ print(f"GPU Usage: {'Enabled' if not nogpu else 'Disabled'}")
 print(f"Output Filename: {output_filename}")
 
 
+#Check directories
 import os
 if not os.path.exists(fasta_dir):
     os.makedirs(fasta_dir)
@@ -341,6 +343,7 @@ print("\n🔍 Finding matching files...")
 matches = find_matching_files(fasta_dir, var_dir)
 
 
+#Print file processing info
 print("\n📁 Files to be processed:")
 for protein_file, var_file, base_name in matches:
     print(f"  - Protein: {base_name}")
@@ -348,6 +351,7 @@ for protein_file, var_file, base_name in matches:
     print(f"    - Variation File: {os.path.basename(var_file)}")
 
 
+#List all fasta files found
 print("\n🧬 FASTA files found:")
 for filename in os.listdir(fasta_dir):
     if filename.endswith('.seq.fasta'):
@@ -360,6 +364,7 @@ for filename in os.listdir(var_dir):
         print(f"  - {filename}")
 
 
+#Execute
 print("\n🔄 Processing proteins...")
 results_df = main(fasta_dir, var_dir, model_location, scoring_strategy, offset_idx, nogpu)
 
@@ -375,7 +380,7 @@ if results_df is None or results_df.empty:
     print("  - Check that the model is properly loaded and supported")
     print("  - Ensure the scoring strategy matches the model's capabilities")
 
-    #Additional debugging: Check a sample variant file
+    #Additional debug
     print("\n🔍 Sample variant file content:")
     if matches:
         sample_var_file = matches[0][1]
@@ -396,14 +401,14 @@ else:
     else:
         print("❌ 'score' column not found in results")
 
-# Analyze and visualise results
+#Analyse and visualise
 print("\n📈 Analyzing results...")
 if results_df is not None and not results_df.empty and 'score' in results_df.columns:
     analyze_results(results_df)
 else:
     print("❌ Cannot analyze results - no valid data found")
 
-#Save results
+#Save
 print("\n💾 Saving results...")
 if results_df is not None and not results_df.empty:
     save_results(results_df, output_filename)
