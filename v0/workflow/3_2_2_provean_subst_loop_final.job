@@ -12,6 +12,9 @@ module load app/miniconda/current
 #Load provean env
 conda activate /home/dylang/my_environments/provean_blast
 
+#USAGE note: PROVEAN is no longer actively maintained
+#Conf DB: NCBI nr4: e.g., nr_v4.00.tar.gz
+
 #Paths
 #fa_file="${base_dir}/Vitvi05_01chr05g05720_t001.seq.fasta"
 #var_file="${base_dir}/Vitvi05_01chr05g05720_t001.var.txt"
