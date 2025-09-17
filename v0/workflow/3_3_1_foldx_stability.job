@@ -8,6 +8,9 @@
 #SBATCH --ntasks=1      
 #SBATCH --cpus-per-task=10                 
 
+#USAGE note: AF3 produces cif vs AF2 pdb; PDB required for foldx
+#Add optional check/conversion based on input file extension
+
 #Load relevant modules
 module load foldex/4.1
 
