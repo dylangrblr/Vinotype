@@ -22,6 +22,7 @@ process UTILS_FINALFILTER {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def optional_indel_filter = task.ext.args_bcftools_filter_indels ? "-e '${task.ext.args_bcftools_filter_indels}'" : ""
 
     """
     # Complex VCF filtering pipeline
@@ -30,7 +31,8 @@ process UTILS_FINALFILTER {
         -f ${fasta} \\
         ${vcf} | \\
     bcftools filter \\
-        -e '${task.ext.args_bcftools_filter}' | \\
+        -e '${task.ext.args_bcftools_filter_snps}' | \\
+    ${optional_indel_filter} \\
     bcftools norm \\
         ${task.ext.args_bcftools_norm_2} | \\
     bcftools view \\

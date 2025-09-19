@@ -32,15 +32,15 @@ else
 
     #Validate required input files
     if [[ -f "${FASTA_REF}" ]] && [[ -f "${ANN_REF}" ]]; then
-		echo "Found ${FASTA_REF} and ${ANN_REF}"
+    echo "Found ${FASTA_REF} and ${ANN_REF}"
 
         #Check indexing
-	    if [ ! -f "${FASTA_REF}.fai" ]; then
-		    echo "Indexing reference"
-		    samtools faidx "${FASTA_REF}" || { echo "Failed to generate index for ${FASTA_REF}"; exit 1; }
-	    else
-		    echo "Found existing index"
-	    fi
+      if [ ! -f "${FASTA_REF}.fai" ]; then
+        echo "Indexing reference"
+        samtools faidx "${FASTA_REF}" || { echo "Failed to generate index for ${FASTA_REF}"; exit 1; }
+      else
+        echo "Found existing index"
+      fi
 
         #Create CDS fasta
         if ! gffread -W -x "${BASE_REF}/cds.fa" -g "${FASTA_REF}" "${ANN_REF}"; then
@@ -70,7 +70,7 @@ else
         if ! grep -q "${ACCESSION}" "${CONFIG_FILE}"; then
             echo "Adding entry to ${CONFIG_FILE}"
 
-            sed -i "/^# Non-standard Databases$/a # ${ORGANISM} : version ${VERSION}\n${ACCESSION}.genome : ${ORGANISM}" "${CONFIG_FILE}"        
+            sed -i "/^# Non-standard Databases$/a # ${ORGANISM} : version ${VERSION}\n${ACCESSION}.genome : ${ORGANISM}" "${CONFIG_FILE}"
         else
             echo "Config entry already exists"
         fi
@@ -80,7 +80,7 @@ else
         java -jar snpEff.jar build -gff3 -v "${ACCESSION}" || \
             { echo "snpEff database build failed"; exit 1; }
 
-        echo "Successful database creation for ${ACCESSION}"       
+        echo "Successful database creation for ${ACCESSION}"
     else
         echo "Failed to find ${FASTA_REF} and ${ANN_REF}"
         exit 1
@@ -96,11 +96,14 @@ java -jar -Xmx4g snpEff.jar -v "${ACCESSION}" -stats snpeff_stats.html \
 
 echo "Successfully annotated ${INPUT_DIR}/final_filt_maxmiss.vcf.gz"
 
+## This needs to be implemented as well
+## SNPSIFT
+
 #Filter PCG variants --> snpsift subworkflow
-#zcat "${INPUT_DIR}/final_filt_maxmiss_ann.vcf.gz" \
-#    | java -jar SnpSift.jar filter \
-#    "(ANN[*].BIOTYPE = 'protein_coding')" \
-#    | gzip > "${INPUT_DIR}/final_filt_high_mod_pcg.ann.vcf.gz" || \
-#    { echo "SnpSift filter failed"; exit 1;}
-#
+zcat "${INPUT_DIR}/final_filt_maxmiss_ann.vcf.gz" \
+    | java -jar SnpSift.jar filter \
+    "(ANN[*].BIOTYPE = 'protein_coding')" \
+    | gzip > "${INPUT_DIR}/final_filt_high_mod_pcg.ann.vcf.gz" || \
+    { echo "SnpSift filter failed"; exit 1;}
+
 #echo "Successfully extracted ${input_dir}/final_filt_high_mod_pcg.ann.vcf.gz"
