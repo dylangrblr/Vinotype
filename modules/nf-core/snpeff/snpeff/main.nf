@@ -1,6 +1,7 @@
 process SNPEFF_SNPEFF {
     tag "$meta.id"
     label 'process_medium'
+    stageInMode 'copy'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -8,8 +9,9 @@ process SNPEFF_SNPEFF {
         'biocontainers/snpeff:5.1--hdfd78af_2' }"
 
     input:
-    tuple val(meta), path(vcf)
-    val   db
+    tuple val(meta), path(vcf), path(tbi)
+    path db
+    path config_file
     tuple val(meta2), path(cache)
 
     output:
@@ -33,7 +35,11 @@ process SNPEFF_SNPEFF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def cache_command = cache ? "-dataDir \${PWD}/${cache}" : ""
     """
+    snpEff build -gff3 -v GCF_030704535.1 -c ${config_file} 
+
     snpEff \\
+        -v GCF_030704535.1 \\
+        -c ${config_file} \\
         -Xmx${avail_mem}M \\
         $db \\
         $args \\
