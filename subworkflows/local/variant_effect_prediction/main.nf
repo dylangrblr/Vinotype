@@ -17,10 +17,7 @@ workflow VARIANT_EFFECT_PREDICTION {
 
     SNPEFF_SNPEFF( ch_gvcf_tbi, ch_snpeff_in, [[],[]])
 
-    // SNPSIFT_FILTER (
-    //     SNPEFF_SNPEFF.out.vcf,
-    //     [[],[]]
-    // )
+    SNPSIFT_FILTER ( SNPEFF_SNPEFF.out.vcf )
 
     emit:
     versions = ch_versions                     // channel: [ versions.yml ]
