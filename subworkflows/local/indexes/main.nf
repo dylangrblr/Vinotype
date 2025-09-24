@@ -29,6 +29,7 @@ workflow INDEXES {
         ch_faidx_index = Channel.empty()
         ch_dict_index = Channel.empty()
 
+
         // BWA index
         if (params.ref_bwa_index) {
             ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_bwa_index])
