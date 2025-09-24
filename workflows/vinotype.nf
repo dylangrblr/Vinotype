@@ -122,7 +122,8 @@ workflow VINOTYPE {
 
     VARIANT_EFFECT_PREDICTION (
         VARIANT_FILTERING.out.gvcf_tbi,
-        params.snpeff_db, 
+        params.snpeff_db_name,
+        params.snpeff_db,
         params.snpeff_config
     )
 

@@ -10,8 +10,7 @@ process SNPEFF_SNPEFF {
 
     input:
     tuple val(meta), path(vcf), path(tbi)
-    path db
-    path config_file
+    tuple val(db_name), path(db_folder), path(config_file)
     tuple val(meta2), path(cache)
 
     output:
@@ -35,18 +34,20 @@ process SNPEFF_SNPEFF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def cache_command = cache ? "-dataDir \${PWD}/${cache}" : ""
     """
-    snpEff build -gff3 -v GCF_030704535.1 -c ${config_file} 
+    snpEff build -gff3 -v ${db_name} -c ${config_file} 
 
     snpEff \\
-        -v GCF_030704535.1 \\
+        ${db_name} \
+        -v  \\
         -c ${config_file} \\
         -Xmx${avail_mem}M \\
-        $db \\
         $args \\
         -csvStats ${prefix}.csv \\
         $cache_command \\
         $vcf \\
         > ${prefix}.ann.vcf
+
+    rm -rf ${db_folder}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
