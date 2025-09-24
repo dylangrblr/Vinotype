@@ -123,5 +123,6 @@ workflow VARIANT_FILTERING {
         // filtered_vcf   = ch_final_filtered_vcf
         // plot_png       = R_PLOT_DENSITY.out.plot_png
         // annotation_txt = BCFTOOLS_QUERY.out.txt
+        gvcf_tbi     = UTILS_FINALFILTER.out.gvcf_tbi
         versions       = ch_versions
 }

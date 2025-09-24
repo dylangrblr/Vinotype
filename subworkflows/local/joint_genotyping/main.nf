@@ -22,7 +22,7 @@ workflow JOINT_GENOTYPING {
     take:
         ch_gvcf_tbi
         ch_intervals_list   // path to intervals.list (optional)
-        ch_fasta       
+        ch_fasta
         ch_faidx_index
         ch_dict_index
         ch_gvcf
@@ -80,9 +80,11 @@ workflow JOINT_GENOTYPING {
 
         } else {
 
-            ch_genomicsdb = Channel.of( [ [id:"Vitis_DB.new"], []] ) 
+            ch_genomicsdb = Channel.of( [ [id:"Vitis_DB.new"], []] )
         }
 
+
+        //NOTE: We assume that people will not directly use the database itself. Only the published GVCF files.
         // Update existing workspace
         GATK4_GENOMICSDBIMPORT(
             ch_gvcf.collect{it[1]},
@@ -100,8 +102,8 @@ workflow JOINT_GENOTYPING {
         GATK4_GENOTYPEGVCFS(
                   GATK4_GENOMICSDBIMPORT.out.updatedb,
                   ch_intervals_list,
-                  ch_fasta, 
-                  ch_faidx_index, 
+                  ch_fasta,
+                  ch_faidx_index,
                   ch_dict_index)
 
         ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions.first())

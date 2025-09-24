@@ -1,0 +1,113 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=64:mem=124GB
+#PBS -N provean_subst
+#PBS -M dylang@sun.ac.za  
+#PBS -m abe
+#PBS -e /home/dylang/provean_db/provean_subst.err
+#PBS -o /home/dylang/provean_db/provean_subst.out
+#PBS -l walltime=2000:00:00
+
+#Module load 
+module load app/miniconda/current
+#Load provean env
+conda activate /home/dylang/my_environments/provean_blast
+
+#USAGE note: PROVEAN is no longer actively maintained
+#Conf DB: NCBI nr4: e.g., nr_v4.00.tar.gz
+
+#Paths
+#fa_file="${base_dir}/Vitvi05_01chr05g05720_t001.seq.fasta"
+#var_file="${base_dir}/Vitvi05_01chr05g05720_t001.var.txt"
+#out_file="${base_dir}/Vitvi05_01chr05g05720_t001.sss"
+
+BASE_DIR="/home/dylang/provean_db"
+TEMP_DIR="${BASE_DIR}/tmp"
+EXE="${BASE_DIR}/exe/bin"
+INPUT_DIR="${BASE_DIR}/input_files_per_protein"
+OUTPUT_DIR="${BASE_DIR}/output_files_per_protein"
+PROVEAN_SUMMARY="${OUTPUT_DIR}/PROVEAN_summary.txt"
+
+#Create tmp and output directories
+mkdir -p "${TEMP_DIR}" "${OUTPUT_DIR}"
+
+#Find matching fasta and var files
+for FASTA_FILE in "${INPUT_DIR}"/*.seq.fasta; do
+	INPUT_FILE=$(basename "${FASTA_FILE}")
+	
+	echo "========================================================================" >> "${PROVEAN_SUMMARY}"
+	echo "Processing ${INPUT_FILE}" >> "${PROVEAN_SUMMARY}"
+	echo "========================================================================" >> "${PROVEAN_SUMMARY}"
+	echo "" >> "${PROVEAN_SUMMARY}"
+	
+	#Check whether input file is correctly passed
+	if [ -n "${INPUT_FILE}" ]; then
+		
+		#Set var and out files
+		VAR_FILE="${FASTA_FILE/.seq.fasta/.var.txt}"
+		OUT_FILE="${INPUT_FILE/.seq.fasta/.out}"
+
+		#Check whether output file already exists
+		if [ ! -f "${OUTPUT_DIR}/${OUT_FILE}" ]; then
+			echo "Generating ${OUT_FILE}"
+			echo "	Locating ${VAR_FILE}"
+		
+			#Look for var file
+			if [ -f "${VAR_FILE}" ]; then
+				echo "	${VAR_FILE} found for ${INPUT_FILE}"
+				echo "Proceed to effect prediction for ${INPUT_FILE}"
+		
+				#Proceed to PROVEAN command
+				bash "${EXE}/provean.sh" \
+					-q "${FASTA_FILE}" \
+					-v "${VAR_FILE}" \
+					--num_threads 64 \
+					--verbose \
+					--tmp_dir "${TEMP_DIR}" > "${OUTPUT_DIR}/${OUT_FILE}" || { echo "Failed to generate ${OUT_FILE}, skipping"; continue; }
+			else
+				echo "Unable to locate ${VAR_FILE}, skipping ${INPUT_FILE}"
+				continue
+			fi
+		else
+			echo "${OUT_FILE} already exists"
+		fi
+		
+		echo "Extracting PROVEAN scores for ${INPUT_FILE}"
+					
+		#Count number of mutations
+		N_MUTATIONS=$(egrep -v "#|\[|\/" "${OUTPUT_DIR}/${OUT_FILE}" | awk '/[0-9]/' | wc -l)
+			echo "Detected ${N_MUTATIONS} mutation(s)" >> "${PROVEAN_SUMMARY}"
+					
+		#Extract number of supporting sequences
+		SUP_SEQS=$(grep "# Number of supporting sequences used" "${OUTPUT_DIR}/${OUT_FILE}" | sed 's/#//g') 
+			echo "${SUP_SEQS}" >> "${PROVEAN_SUMMARY}"
+					
+		#Define output format
+		printf "\n%-12s %-10s %-24s\n" "MUTATION" "PROVEAN_SCORE" "PREDICTION" >> "${PROVEAN_SUMMARY}"
+		printf "%-12s %-10s %-24s\n" "--------" "-------------" "----------" >> "${PROVEAN_SUMMARY}"
+	
+		#Loop over mutation info 
+		egrep -v "#|\[|\/" "${OUTPUT_DIR}/${OUT_FILE}" | awk '/[0-9]/' | while IFS= read -r ENTRY; do
+
+			#Reformat protein substitution info
+			SUB=$(echo "${ENTRY}" | awk -F '[\t,]' '{print $2 $1 $3}')
+						
+			#Extract specific score						
+			SCORE=$(echo "${ENTRY}" | awk -F '[\t,]' '{ print ($4 + 0) }')
+			
+			#PROVEAN threshold	
+			if (( $(echo "${SCORE} <= -2.400" | bc -l) )); then
+   				EFFECT="Deleterious"
+   			else
+   				EFFECT="Tolerated"						
+			fi
+						
+			#Print output
+			printf "%-12s %-10s %-24s\n" "${SUB}" "${SCORE}" "${EFFECT}" >> "${PROVEAN_SUMMARY}"
+		done
+		echo "" >> "${PROVEAN_SUMMARY}"
+	else
+		echo "WARNING: Check ${INPUT_FILE}"
+		continue
+	fi
+	echo "" 
+done

@@ -14,7 +14,7 @@ include { REFERENCE_ALIGNMENT } from '../subworkflows/local/reference_alignment'
 include { VARIANT_CALLING } from '../subworkflows/local/variant_calling'
 include { JOINT_GENOTYPING } from '../subworkflows/local/joint_genotyping'
 include { VARIANT_FILTERING } from '../subworkflows/local/variant_filtering'
-
+include { VARIANT_EFFECT_PREDICTION } from '../subworkflows/local/variant_effect_prediction'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -120,11 +120,18 @@ workflow VINOTYPE {
     ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
 
 
+    VARIANT_EFFECT_PREDICTION (
+        VARIANT_FILTERING.out.gvcf_tbi,
+        params.snpeff_db_name,
+        params.snpeff_db,
+        params.snpeff_config
+    )
+
 
     //------------------------------
 
 
-    ch_versions.dump(tag: 'ch_versions', pretty: true)
+    // ch_versions.dump(tag: 'ch_versions', pretty: true)
 
     //
     // Collate and save software versions
