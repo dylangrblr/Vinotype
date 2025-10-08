@@ -130,11 +130,11 @@ workflow REFERENCE_ALIGNMENT {
         }
 
 
-        ch_bam_bai.view {it -> "ch_bam_bai: $it"}
-        INDEXES.out.bwa_index.view {it -> "bwa_index: $it"}
-        INDEXES.out.dict_index.view {it -> "dict_index: $it"}
-        INDEXES.out.faidx_index.view {it -> "faidx_index: $it"}
-        INDEXES.out.fasta_genozip.view {it -> "fasta_genozip: $it"}
+        // ch_bam_bai.view {it -> "ch_bam_bai: $it"}
+        // INDEXES.out.bwa_index.view {it -> "bwa_index: $it"}
+        // INDEXES.out.dict_index.view {it -> "dict_index: $it"}
+        // INDEXES.out.faidx_index.view {it -> "faidx_index: $it"}
+        // INDEXES.out.fasta_genozip.view {it -> "fasta_genozip: $it"}
 
 
    emit:
