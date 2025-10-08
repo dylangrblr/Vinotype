@@ -84,6 +84,7 @@ workflow REFERENCE_ALIGNMENT {
             []       // no index format
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+        ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai
 
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
         ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
@@ -125,7 +126,7 @@ workflow REFERENCE_ALIGNMENT {
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
 
-            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
+            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
         }
 
 
@@ -133,7 +134,7 @@ workflow REFERENCE_ALIGNMENT {
         INDEXES.out.bwa_index.view {it -> "bwa_index: $it"}
         INDEXES.out.dict_index.view {it -> "dict_index: $it"}
         INDEXES.out.faidx_index.view {it -> "faidx_index: $it"}
-        INDEXES.out.fasta_genozip.view {it -> "fasta_index: $it"}
+        INDEXES.out.fasta_genozip.view {it -> "fasta_genozip: $it"}
 
 
    emit:
