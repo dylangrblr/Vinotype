@@ -71,15 +71,17 @@ workflow PIPELINE_INITIALISATION {
     Channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
         .map {
-            meta, fastq_1, fastq_2, bam ->
-            if(!bam) {
+            meta, fastq_1, fastq_2, bam, gvcf ->
+            if(!bam && !gvcf) {
                 if (!fastq_2 ) {
                     return [ meta.id, meta + [ single_end:true, data_type: 'fastq'], [ fastq_1 ] ]
                 } else {
                     return [ meta.id, meta + [ single_end:false,  data_type: 'fastq'], [ fastq_1, fastq_2 ] ]
                 }
-            } else {
+            } else if (bam) {
                 return [ meta.id, meta + [ data_type: 'bam_genozip'], [ bam ] ]
+            } else {
+                return [ meta.id, meta + [ data_type: 'gvcf_genozip'], [ gvcf ] ]
             }
         }
         .groupTuple()
@@ -92,6 +94,7 @@ workflow PIPELINE_INITIALISATION {
         }
         .set { ch_samplesheet }
 
+    ch_samplesheet.dump(tag: "CH_SAMPLESHEET")
 
     ch_fasta = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta])
     ch_intervals_list = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_intervals_list])

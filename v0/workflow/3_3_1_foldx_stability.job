@@ -1,0 +1,125 @@
+#!/bin/bash
+#SBATCH --job-name=foldx_stability             
+#SBATCH --output=/data/users/dylangrblr/logs/foldx_stability.out     
+#SBATCH --error=/data/users/dylangrblr/logs/foldx_stability.err         
+#SBATCH --time=04:00:00
+#SBATCH --partition=cpu 
+#SBATCH --qos=normal                    
+#SBATCH --ntasks=1      
+#SBATCH --cpus-per-task=10                 
+
+#USAGE note: AF3 produces cif vs AF2 pdb; PDB required for foldx
+#Add optional check/conversion based on input file extension
+
+#Load relevant modules
+module load foldex/4.1
+
+#Set paths
+BASE_DIR="/data/users/dylangrblr/stability_assess"
+BASE_OUTPUT_DIR="${BASE_DIR}/energy_diff_output"
+INPUT_CIF_DIR="${BASE_DIR}/cif_models"
+INPUT_PDB_DIR="${BASE_DIR}/converted_pdb_files"
+FOLDX_MUTATIONS="${BASE_DIR}/foldx_mutations_neutral.txt"
+FOLDX_SUMMARY="${BASE_DIR}/foldx_summary.txt"
+
+#Loop over .cif files
+for file in "${INPUT_CIF_DIR}"/*.cif; do
+	entry=$(basename "${file%.cif}")
+	echo "========================================================================" >> "${FOLDX_SUMMARY}"
+	echo "Processing ${entry}" >> "${FOLDX_SUMMARY}"
+	echo "========================================================================" >> "${FOLDX_SUMMARY}"
+	
+	#Check if valid pdb exists
+	if [ -f "${INPUT_PDB_DIR}/${entry}.pdb" ]; then
+		echo "Found valid pdb file for ${entry}"
+		SAMPLE_OUTPUT_DIR="${BASE_OUTPUT_DIR}/${entry}"
+		mkdir -p "${SAMPLE_OUTPUT_DIR}"
+		echo "Creating ${SAMPLE_OUTPUT_DIR}"
+
+		#RepairPDB if not done
+		if [ ! -f "${SAMPLE_OUTPUT_DIR}/${entry}.pdb" ]; then
+			echo "Running RepairPDB for ${entry}"
+			FoldX --command=RepairPDB \
+			      --pdb-dir="${INPUT_PDB_DIR}" \
+			      --pdb="${entry}.pdb" \
+			      --output-dir="${SAMPLE_OUTPUT_DIR}" || \
+			      { echo "Failed to run RepairPDB for ${entry}"; exit 1; }
+		else
+			echo "RepairPDB found for ${entry}"
+			continue
+		fi
+
+		#Skip if already analysed
+		if ! find "${SAMPLE_OUTPUT_DIR}" -name '*Dif*' | grep -q .; then
+			echo "Running BuildModel for ${entry}"
+			cd "${SAMPLE_OUTPUT_DIR}"
+
+			if ! find "${SAMPLE_OUTPUT_DIR}" -name '*_list*' | grep -q .; then
+				echo "Creating mutation file for ${entry}"
+				MUTATION_ENTRY=$(awk -v entry="${entry%_model}" '{ if ($1 == entry) print $2 }' "${FOLDX_MUTATIONS}" | \
+				sed 's/\([A-Z]\)\([0-9]\)/\1A\2/g; s/$/;/')
+				
+				echo "${MUTATION_ENTRY} extracted for ${entry}"
+				echo "${MUTATION_ENTRY}" >> "individual_list.txt"
+				
+				FoldX --command=BuildModel \
+				      --pdb="${entry}_Repair.pdb" \
+				      --mutant-file="individual_list.txt" \
+				      --numberOfRuns=5 || \
+	      			     { echo "Failed to run BuildModel for ${entry}"; exit 1; }
+
+				N_MUTATIONS=$(cat *_list* | wc -l)
+				echo "" >> "${FOLDX_SUMMARY}"
+				echo "Detected ${N_MUTATIONS} mutation(s)" >> "${FOLDX_SUMMARY}"
+				
+				SAMPLE_SD=$(cat *Average* | awk '{print $2}' | tail -n "${N_MUTATIONS}")
+				AVG_ENERGY=$(cat *Average* | awk '{print $3}' | tail -n "${N_MUTATIONS}")
+
+				if [ -n "${SAMPLE_SD}" ]; then
+					printf "\n%-12s %-10s %-12s %-45s\n" "Mutation" "SD" "Avg ∆∆G" "Interpretation" >> "${FOLDX_SUMMARY}"
+					printf "%-12s %-10s %-12s %-45s\n" "--------" "--------" "--------" "-----------------------------" >> "${FOLDX_SUMMARY}"
+					
+					for i in $(seq 1 "${N_MUTATIONS}"); do
+						MUTATION_NAME=$(cat "individual_list.txt" | awk -v line="${i}" 'NR == line {print $1}' | sed 's/A\([0-9]*[A-Z]\);$/\1/')
+						SAMPLE_SD_ENTRY=$(echo "${SAMPLE_SD}" | awk -v line="${i}" 'NR == line {print $1}')
+						AVG_ENERGY_ENTRY=$(echo "${AVG_ENERGY}" | awk -v line="${i}" 'NR == line {print $1}')
+						
+						if [ -z "${SAMPLE_SD_ENTRY}" ] || [ -z "${AVG_ENERGY_ENTRY}" ]; then
+							printf "%-12s %-10s %-12s %-45s\n" "${MUTATION_NAME}" "N/A" "N/A" "Missing energy values" >> "${FOLDX_SUMMARY}"
+							continue
+						fi
+
+						#Interpret SD
+						if (( $(echo "${SAMPLE_SD_ENTRY} <= 0.500" | bc -l) )); then
+							SD_COMMENT="Low SD"
+						else
+							SD_COMMENT="WARNING: High SD"
+						fi
+
+						#Interpret Avg ∆∆G
+						if (( $(echo "${AVG_ENERGY_ENTRY} <= -0.500" | bc -l) )); then
+							GG_COMMENT="Stabilising"
+						elif (( $(echo "${AVG_ENERGY_ENTRY} >= 0.500" | bc -l) )); then
+							GG_COMMENT="Destabilising"
+						else
+							GG_COMMENT="Not significant"
+						fi
+
+						printf "%-12s %-10s %-12s %-45s\n" "${MUTATION_NAME}" "${SAMPLE_SD_ENTRY}" "${AVG_ENERGY_ENTRY}" "${SD_COMMENT}, ${GG_COMMENT}" >> "${FOLDX_SUMMARY}"
+					done
+				else
+					echo "Failed to extract SAMPLE_SD for ${entry}" 
+				fi
+			else
+				echo "Skipping ${entry}, mutation file already exists"
+				continue
+			fi		
+		else
+			echo "Skipping ${entry}, FoldX analysis already completed"
+			continue
+		fi
+	else
+		echo "Failed to find valid pdb file for ${entry}"
+		continue
+	fi
+done

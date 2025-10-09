@@ -22,7 +22,7 @@ workflow JOINT_GENOTYPING {
     take:
         ch_gvcf_tbi
         ch_intervals_list   // path to intervals.list (optional)
-        ch_fasta       
+        ch_fasta
         ch_faidx_index
         ch_dict_index
         ch_gvcf
@@ -30,7 +30,10 @@ workflow JOINT_GENOTYPING {
         //ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
 
     main:
-    //NOTE: @abhi18av these are necessary only if we split the BAM files per chromosome
+
+        ch_versions = Channel.empty()
+
+        //NOTE: @abhi18av these are necessary only if we split the BAM files per chromosome
         // // 1. Index all GVCFs
         // BCFTOOLS_INDEX(ch_gvcf_bins.map { sample, gvcf -> tuple(sample, gvcf) })
 
@@ -77,9 +80,11 @@ workflow JOINT_GENOTYPING {
 
         } else {
 
-            ch_genomicsdb = Channel.of( [ [id:"Vitis_DB.new"], []] ) 
+            ch_genomicsdb = Channel.of( [ [id:"Vitis_DB.new"], []] )
         }
 
+
+        //NOTE: We assume that people will not directly use the database itself. Only the published GVCF files.
         // Update existing workspace
         GATK4_GENOMICSDBIMPORT(
             ch_gvcf.collect{it[1]},
@@ -90,21 +95,22 @@ workflow JOINT_GENOTYPING {
             ch_dict_index,
             ch_intervals_list
         )
+        ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions.first())
 
 
         // 8. GenotypeGVCFs
         GATK4_GENOTYPEGVCFS(
                   GATK4_GENOMICSDBIMPORT.out.updatedb,
                   ch_intervals_list,
-                  ch_fasta, 
-                  ch_faidx_index, 
+                  ch_fasta,
+                  ch_faidx_index,
                   ch_dict_index)
 
+        ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions.first())
 
-//GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
+    //GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
 
         // Collect version info
-        ch_versions = Channel.empty()
         // ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(BCFTOOLS_CONCAT.out.versions)
         // ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)

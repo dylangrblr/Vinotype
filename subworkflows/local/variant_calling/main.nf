@@ -8,6 +8,8 @@
  *   - versions: version info from all modules
  */
 
+include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__GVCF      } from '../../../modules/local/genozip/compress/main'
+include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__GVCF  } from '../../../modules/local/genozip/decompress/main'
 include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/main.nf'
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
@@ -16,10 +18,12 @@ include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotype
 workflow VARIANT_CALLING {
 
     take:
+        ch_samplesheet_gvcf // channel: samplesheet read in from --input
         ch_bam_bai      // tuple(meta, bam, bai)
         ch_fasta    // tuple(meta, fasta)
         ch_faidx_index  // tuple(meta, faidx_index)
         ch_dict_index  // tuple(meta, dict_index)
+        ch_fasta_genozip  // tuple(meta, fasta_genozip)
 
 
     main:
@@ -38,6 +42,37 @@ workflow VARIANT_CALLING {
             [[],[]],
             [[],[]],
         )
+        ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
+
+        if(params.use_genozip && params.genozip_license_file) {
+
+            if(params.genozip_compress_gvcfs ) {
+                        GENOZIP_COMPRESS__GVCF(
+                            GATK4_HAPLOTYPECALLER.out.vcf,
+                            params.genozip_license_file,
+                            ch_fasta_genozip
+                        )
+                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS__GVCF.out.versions.first())
+
+                        GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
+                    }
+
+
+            // If samplesheet has GENOZIP VCF files, decompress them
+            GENOZIP_DECOMPRESS__GVCF(
+                ch_samplesheet_gvcf,
+                params.genozip_license_file,
+                ch_fasta_genozip
+            )
+            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
+
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
+
+            //ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
+        }
+
+
+
 
         // // Get chromosome names for each BAM
         // SAMTOOLS_IDXSTATS(ch_bam_bai)
@@ -65,7 +100,6 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
-        // ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
 
     emit:
         gvcf_tbi_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi

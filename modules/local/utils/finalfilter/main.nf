@@ -13,6 +13,7 @@ process UTILS_FINALFILTER {
     tuple val(meta3), path(fai)
 
     output:
+    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi"), emit: gvcf_tbi
     tuple val(meta), path("*.vcf.gz"), emit: vcf
     tuple val(meta), path("*.vcf.gz.tbi"), emit: tbi
     path "versions.yml"           , emit: versions
@@ -22,6 +23,7 @@ process UTILS_FINALFILTER {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def optional_indel_filter = task.ext.args_bcftools_filter_indels ? "-e '${task.ext.args_bcftools_filter_indels}'" : ""
 
     """
     # Complex VCF filtering pipeline
@@ -30,7 +32,8 @@ process UTILS_FINALFILTER {
         -f ${fasta} \\
         ${vcf} | \\
     bcftools filter \\
-        -e '${task.ext.args_bcftools_filter}' | \\
+        -e '${task.ext.args_bcftools_filter_snps}' | \\
+    ${optional_indel_filter} \\
     bcftools norm \\
         ${task.ext.args_bcftools_norm_2} | \\
     bcftools view \\
@@ -49,6 +52,7 @@ process UTILS_FINALFILTER {
         bcftools: \$(bcftools --version 2>&1 | head -n1 | sed 's/^.*bcftools //; s/ .*\$//')
         vcftools: \$(vcftools --version 2>&1 | head -n1 | sed 's/^.*VCFtools (//; s/).*\$//')
         bgzip: \$(bgzip --version 2>&1 | head -n1 | sed 's/^.*bgzip //; s/ .*\$//')
+        tabix: \$(tabix --version 2>&1 | head -n1 | sed 's/^.*tabix //; s/ .*\$//')
     END_VERSIONS
     """
 

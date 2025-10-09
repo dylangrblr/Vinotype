@@ -14,7 +14,7 @@ include { REFERENCE_ALIGNMENT } from '../subworkflows/local/reference_alignment'
 include { VARIANT_CALLING } from '../subworkflows/local/variant_calling'
 include { JOINT_GENOTYPING } from '../subworkflows/local/joint_genotyping'
 include { VARIANT_FILTERING } from '../subworkflows/local/variant_filtering'
-
+include { VARIANT_EFFECT_PREDICTION } from '../subworkflows/local/variant_effect_prediction'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -39,41 +39,51 @@ workflow VINOTYPE {
                         .dump(tag: 'ch_samplesheet_fastq', pretty: true)
 
 
-    ch_samplesheet_bam = ch_samplesheet
-                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
-                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
-
 
     QUALITY_CONTROL (
         ch_samplesheet_fastq
     )
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
     ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
-    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions.first())
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions)
 
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
     //
 
+    ch_samplesheet_bam = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'bam_genozip' }
+                        .dump(tag: 'ch_samplesheet_bam', pretty: true)
+
+
     REFERENCE_ALIGNMENT (
-        ch_fasta,
         ch_samplesheet_bam,
+        ch_fasta,
         QUALITY_CONTROL.out.fastp_reads
     )
-    // ch_multiqc_files = ch_multiqc_files.mix()
-    // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    //ch_multiqc_files = ch_multiqc_files.mix()
+    ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.multiqc_files.collect{it[1]}.ifEmpty([]))
 
     //
     // SUBWORKFLOW: VARIANT_CALLING
     //
+
+    ch_samplesheet_gvcf = ch_samplesheet
+                        .filter { meta, files -> meta.data_type == 'gvcf_genozip' }
+                        .dump(tag: 'ch_samplesheet_gvcf', pretty: true)
+
+
     VARIANT_CALLING (
+        ch_samplesheet_gvcf,
         REFERENCE_ALIGNMENT.out.bam_bai,
         ch_fasta,
         REFERENCE_ALIGNMENT.out.faidx_index,
         REFERENCE_ALIGNMENT.out.dict_index,
+        REFERENCE_ALIGNMENT.out.fasta_genozip
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions)
 
 
     //
@@ -89,8 +99,12 @@ workflow VINOTYPE {
         VARIANT_CALLING.out.tbi_files,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
 
+
+
+    //------------------------------
+    // TODO: @abhi18av VARIANT_ANNOTATION (PRE/POST) variant_filtering
 
     //
     // SUBWORKFLOW: JOINT_GENOTYPING
@@ -103,10 +117,21 @@ workflow VINOTYPE {
         ch_intervals_list,
     )
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
 
 
+    VARIANT_EFFECT_PREDICTION (
+        VARIANT_FILTERING.out.gvcf_tbi,
+        params.snpeff_db_name,
+        params.snpeff_db,
+        params.snpeff_config
+    )
 
+
+    //------------------------------
+
+
+    // ch_versions.dump(tag: 'ch_versions', pretty: true)
 
     //
     // Collate and save software versions
@@ -118,7 +143,6 @@ workflow VINOTYPE {
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
-
 
     //
     // MODULE: MultiQC

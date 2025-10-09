@@ -39,7 +39,10 @@ workflow VARIANT_FILTERING {
         ch_intervals_list // path to intervals.list (optional)
 
     main:
-        // 9. SelectVariants for SNPs and INDELs
+
+        // Collect version info
+        ch_versions = Channel.empty()
+
         GATK4_SELECTVARIANTS__SNP(
             ch_vcf_tbi,
             ch_intervals_list,
@@ -48,6 +51,8 @@ workflow VARIANT_FILTERING {
             ch_dict_index,
             'snp'
         )
+        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions.first())
+
         ch_snp_vcf = GATK4_SELECTVARIANTS__SNP.out.vcf
         ch_snp_vcf_tbi = GATK4_SELECTVARIANTS__SNP.out.vcf_tbi
 
@@ -60,6 +65,7 @@ workflow VARIANT_FILTERING {
             'indel'
         )
         ch_indel_vcf = GATK4_SELECTVARIANTS__INDEL.out.vcf
+        ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions.first())
 
         list_annotation_types = [
             "[ %DP]",
@@ -88,35 +94,28 @@ workflow VARIANT_FILTERING {
             ch_faidx_index,
             ch_dict_index
         )
+        ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
 
         // 2. Index SNP VCF for downstream querying and filtering
         BCFTOOLS_INDEX(ch_snp_vcf)
+        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
         // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
 
         // 3. Extract annotation fields and plot distributions
         BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
+        ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions.first())
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt
 
 /*
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
 */
 
-
         UTILS_FINALFILTER(
             ch_snp_vcf_tbi,
             ch_fasta,
             ch_faidx_index
         )
-        // 5. Collect version info
-        ch_versions = Channel.empty()
-        // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
-        // ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions)
-        // ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions)
-        // ch_versions = ch_versions.mix(R_PLOT_DENSITY.out.versions)
-        // ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
-        // ch_versions = ch_versions.mix(BCFTOOLS_FILTER.out.versions)
-        // ch_versions = ch_versions.mix(BCFTOOLS_VIEW.out.versions)
-        // ch_versions = ch_versions.mix(VCFTOOLS_VIEW.out.versions)
+        ch_versions = ch_versions.mix(UTILS_FINALFILTER.out.versions.first()) 
 
     emit:
         // snp_vcf        = ch_snp_vcf
@@ -124,5 +123,6 @@ workflow VARIANT_FILTERING {
         // filtered_vcf   = ch_final_filtered_vcf
         // plot_png       = R_PLOT_DENSITY.out.plot_png
         // annotation_txt = BCFTOOLS_QUERY.out.txt
+        gvcf_tbi     = UTILS_FINALFILTER.out.gvcf_tbi
         versions       = ch_versions
 }
