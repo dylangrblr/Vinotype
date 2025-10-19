@@ -21,9 +21,11 @@ process GENOZIP_DECOMPRESS {
 
     output:
     tuple val(meta), path("*.bam"), emit: bam, optional: true
+    tuple val(meta), path("*bai") , emit: bai, optional: true
     tuple val(meta), path("*.bam"), path("*bai"), emit: bam_bai, optional: true
 
     tuple val(meta), path("*.g.vcf"), emit: gvcf, optional: true
+    tuple val(meta), path("*tbi")   , emit: tbi, optional: true
     tuple val(meta), path("*.g.vcf"), path("*tbi"), emit: gvcf_tbi, optional: true
 
     path "versions.yml"           , emit: versions
@@ -57,6 +59,9 @@ process GENOZIP_DECOMPRESS {
     """
 
     touch ${prefix}.bam
+    touch ${prefix}.bam.bai
+    touch ${prefix}.g.vcf
+    touch ${prefix}.tbi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

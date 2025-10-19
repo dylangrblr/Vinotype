@@ -30,7 +30,9 @@ workflow VARIANT_CALLING {
 
         // Collect version info
         ch_versions = Channel.empty()
-
+        ch_gvcf_tbi = Channel.empty()
+        ch_gvcf = Channel.empty()
+        ch_tbi = Channel.empty()
 
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
@@ -43,6 +45,9 @@ workflow VARIANT_CALLING {
             [[],[]],
         )
         ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
+        ch_gvcf_tbi = GATK4_HAPLOTYPECALLER.out.vcf_tbi
+        ch_tbi = GATK4_HAPLOTYPECALLER.out.tbi
+        ch_gvcf = GATK4_HAPLOTYPECALLER.out.vcf
 
         if(params.use_genozip && params.genozip_license_file) {
 
@@ -67,6 +72,8 @@ workflow VARIANT_CALLING {
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
 
             GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
+            ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
+            ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
 
             //ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
         }
@@ -133,8 +140,8 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
 
     emit:
-        gvcf_tbi_files = GATK4_HAPLOTYPECALLER.out.vcf_tbi
-        gvcf_files = GATK4_HAPLOTYPECALLER.out.vcf
-        tbi_files = GATK4_HAPLOTYPECALLER.out.tbi
+        gvcf_tbi_files = ch_gvcf_tbi
+        gvcf_files = ch_gvcf
+        tbi_files = ch_tbi
         versions   = ch_versions
 }
