@@ -2,14 +2,9 @@ process GENOZIP_COMPRESS {
     tag "$meta.id"
     label 'process_medium'
 
-//FIXME: Use the latest containers for genozip
-//    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-//        'oras://community.wave.seqera.io/library/genozip:15.0.73--5e7a11b582e9aebe':
-//        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
-
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50':
-        'community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc':
+        'community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc' }"
 
 
     input:
