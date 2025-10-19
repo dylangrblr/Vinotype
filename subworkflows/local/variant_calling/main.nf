@@ -71,9 +71,9 @@ workflow VARIANT_CALLING {
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
 
-            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
 
-            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.view()
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf.view()
 
             ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
