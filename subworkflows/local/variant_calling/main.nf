@@ -53,7 +53,7 @@ workflow VARIANT_CALLING {
 
             if(params.genozip_compress_gvcfs ) {
                         GENOZIP_COMPRESS__GVCF(
-                            GATK4_HAPLOTYPECALLER.out.vcf,
+                            ch_gvcf_tbi,
                             params.genozip_license_file,
                             ch_fasta_genozip
                         )

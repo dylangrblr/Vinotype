@@ -8,12 +8,14 @@ process GENOZIP_COMPRESS {
 
 
     input:
-    tuple val(meta), path(bam_or_gvcf)
+    tuple val(meta), path(bam_or_gvcf), path(bai_or_tbi)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
     tuple val(meta), path("*.genozip"), emit: genozipped
+    tuple val(meta), path("*.tbi"), emit: tbi, optional: true
+    tuple val(meta), path("*.bai"), emit: bai, optional: true
     path "versions.yml"           , emit: versions
 
     when:

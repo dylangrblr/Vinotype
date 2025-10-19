@@ -110,7 +110,7 @@ workflow REFERENCE_ALIGNMENT {
 
             if(params.genozip_compress_bams ) {
                         GENOZIP_COMPRESS__BAM(
-                            SAMTOOLS_VIEW.out.bam,
+                            ch_bam_bai,
                             params.genozip_license_file,
                             INDEXES.out.fasta_genozip
                         )
