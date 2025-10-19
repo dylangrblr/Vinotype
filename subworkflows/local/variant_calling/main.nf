@@ -73,6 +73,8 @@ workflow VARIANT_CALLING {
 
             GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
 
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.view()
+
             ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
             ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
