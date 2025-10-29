@@ -80,7 +80,7 @@ workflow VARIANT_CALLING {
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
             ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
 
-            //ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
+            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
         }
 
 
