@@ -45,6 +45,7 @@ process GENOZIP_DECOMPRESS {
         --output ${prefix}
 
     bcftools view ${prefix} -Oz -o ${prefix}.gz
+    tabix -p vcf ${prefix}.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
