@@ -79,9 +79,9 @@ workflow PIPELINE_INITIALISATION {
                     return [ meta.id, meta + [ single_end:false,  data_type: 'fastq'], [ fastq_1, fastq_2 ] ]
                 }
             } else if (bam) {
-                return [ meta.id, meta + [ data_type: 'bam_genozip'],  bam, bai  ]
+                return [ [ id: meta.id, data_type: 'bam_genozip'],  bam, bai  ]
             } else {
-                return [ meta.id, meta + [ data_type: 'gvcf_genozip'],  gvcf, tbi  ]
+                return [ [ id: meta.id, data_type: 'gvcf_genozip'],  gvcf, tbi  ]
             }
         }
         .groupTuple()
