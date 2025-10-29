@@ -19,12 +19,12 @@ process GENOZIP_DECOMPRESS {
 
     output:
     tuple val(meta), path("*.bam"), emit: bam, optional: true
-    tuple val(meta), path("*bai") , emit: bai, optional: true
-    tuple val(meta), path("*.bam"), path("*bai"), emit: bam_bai, optional: true
+    tuple val(meta), path(bai_or_tbi), emit: bai, optional: true
+    tuple val(meta), path("*.bam"), path(bai_or_tbi), emit: bam_bai, optional: true
 
     tuple val(meta), path("*.g.vcf"), emit: gvcf, optional: true
-    tuple val(meta), path("*tbi")   , emit: tbi, optional: true
-    tuple val(meta), path("*.g.vcf"), path("*tbi"), emit: gvcf_tbi, optional: true
+    tuple val(meta), path(bai_or_tbi), emit: tbi, optional: true
+    tuple val(meta), path("*.g.vcf"), path(bai_or_tbi), emit: gvcf_tbi, optional: true
 
     path "versions.yml"           , emit: versions
 
