@@ -7,9 +7,16 @@ process GENOZIP_COMPRESS {
     //     'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc':
     //     'community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc' }"
 
+    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    //     'docker://community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348':
+    //     'community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348' }"
+
+
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348':
-        'community.wave.seqera.io/library/genozip:15.0.16--205028cd2b169348' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_tabix_genozip:77b4ccef5d13e48b':
+        'community.wave.seqera.io/library/bcftools_samtools_tabix_genozip:77b4ccef5d13e48b' }"
+
+
 
 
     input:
