@@ -22,9 +22,9 @@ process GENOZIP_DECOMPRESS {
     tuple val(meta), path(bai_or_tbi), emit: bai, optional: true
     tuple val(meta), path("*.bam"), path(bai_or_tbi), emit: bam_bai, optional: true
 
-    tuple val(meta), path("*.g.vcf"), emit: gvcf, optional: true
+    tuple val(meta), path("*.g.vcf.gz"), emit: gvcf, optional: true
     tuple val(meta), path(bai_or_tbi), emit: tbi, optional: true
-    tuple val(meta), path("*.g.vcf"), path(bai_or_tbi), emit: gvcf_tbi, optional: true
+    tuple val(meta), path("*.g.vcf.gz"), path(bai_or_tbi), emit: gvcf_tbi, optional: true
 
     path "versions.yml"           , emit: versions
 
@@ -43,6 +43,8 @@ process GENOZIP_DECOMPRESS {
         --no-cache \\
         --reference ${fasta_genozip} \\
         --output ${prefix}
+
+    bgzip ${prefix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
