@@ -81,7 +81,7 @@ workflow PIPELINE_INITIALISATION {
             } else if (bam) {
                 return [ meta.id, meta + [ data_type: 'bam_genozip'], [ bam, bai ] ]
             } else {
-                return [ meta.id, meta + [ data_type: 'gvcf_genozip'], [ gvcf, tbi ] ]
+                return [ meta.id, meta + [ data_type: 'gvcf_genozip'], [ gvcf, tbi ], [ tbi ] ]
             }
         }
         .groupTuple()
