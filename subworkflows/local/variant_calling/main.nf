@@ -64,21 +64,21 @@ workflow VARIANT_CALLING {
 
             ch_samplesheet_gvcf.dump(tag:'ch_samplesheet_gvcf')
 
-            // // If samplesheet has GENOZIP VCF files, decompress them
-            // GENOZIP_DECOMPRESS__GVCF(
-            //     ch_samplesheet_gvcf,
-            //     params.genozip_license_file,
-            //     ch_fasta_genozip
-            // )
-            // ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
+            // If samplesheet has GENOZIP VCF files, decompress them
+            GENOZIP_DECOMPRESS__GVCF(
+                ch_samplesheet_gvcf,
+                params.genozip_license_file,
+                ch_fasta_genozip
+            )
+            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
 
-            // GENOZIP_DECOMPRESS__GVCF.out.gvcf.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
 
-            // GENOZIP_DECOMPRESS__GVCF.out.gvcf.view()
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf.view()
 
-            // ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
-            // ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
-            // ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
+            ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
+            ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
+            ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
 
             //ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
         }
