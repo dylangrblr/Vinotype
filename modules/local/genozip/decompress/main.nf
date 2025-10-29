@@ -40,7 +40,6 @@ process GENOZIP_DECOMPRESS {
         --threads $task.cpus \\
         $args \\
         $bam_or_gvcf \\
-        --index \\
         --no-cache \\
         --reference ${fasta_genozip} \\
         --output ${prefix}
