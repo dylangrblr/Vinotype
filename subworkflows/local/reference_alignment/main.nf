@@ -117,10 +117,11 @@ workflow REFERENCE_ALIGNMENT {
                         ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
                     }
 
+            ch_in_genozip_decompress_bam = ch_samplesheet_bam.map { m, file_index -> [m , file_index[0] , file_index[1]] }
 
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
-                ch_samplesheet_bam,
+                ch_in_genozip_decompress_bam,
                 params.genozip_license_file,
                 INDEXES.out.fasta_genozip
             )
