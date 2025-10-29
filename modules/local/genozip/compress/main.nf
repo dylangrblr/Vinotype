@@ -19,6 +19,7 @@ process GENOZIP_COMPRESS {
 
     output:
     tuple val(meta), path("*.genozip"), emit: genozipped
+    tuple val(meta), path("*.genozip"), path(bai_or_tbi), emit: genozipped_index
     tuple val(meta), path("*.tbi"), emit: tbi, optional: true
     tuple val(meta), path("*.bai"), emit: bai, optional: true
     path "versions.yml"           , emit: versions
