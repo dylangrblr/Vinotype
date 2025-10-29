@@ -13,7 +13,7 @@ process GENOZIP_DECOMPRESS {
 
 
     input:
-    tuple val(meta), [path(bam_or_gvcf), path(bai_or_tbi)]
+    tuple val(meta), path(bam_or_gvcf), path(bai_or_tbi)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
