@@ -44,7 +44,7 @@ process GENOZIP_DECOMPRESS {
         --reference ${fasta_genozip} \\
         --output ${prefix}
 
-    bgzip ${prefix}
+    bcftools view ${prefix} -Oz -o ${prefix}.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
