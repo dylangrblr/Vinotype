@@ -59,7 +59,7 @@ workflow VARIANT_CALLING {
                         )
                         ch_versions = ch_versions.mix(GENOZIP_COMPRESS__GVCF.out.versions.first())
 
-                        GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
+                        // GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
                     }
 
             ch_in_genozip_decompress_gvcf = ch_samplesheet_gvcf.map { m, file_index -> [m , file_index[0] , file_index[1]] }
