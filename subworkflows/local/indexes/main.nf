@@ -28,7 +28,7 @@ workflow INDEXES {
         ch_bwa_index = Channel.empty()
         ch_faidx_index = Channel.empty()
         ch_dict_index = Channel.empty()
-
+        ch_versions = Channel.empty()
 
         // BWA index
         if (params.ref_bwa_index) {

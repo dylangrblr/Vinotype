@@ -84,6 +84,7 @@ workflow REFERENCE_ALIGNMENT {
             []       // no index format
         )
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+        ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai
 
         //NOTE: @abhi18av OPTIONALLY IMPLEMENT THIS POST-FILTERING FLAGSTAT
         ch_bam_for_flagstat_post=SAMTOOLS_VIEW.out.bam_bai
@@ -109,24 +110,32 @@ workflow REFERENCE_ALIGNMENT {
 
             if(params.genozip_compress_bams ) {
                         GENOZIP_COMPRESS__BAM(
-                            SAMTOOLS_VIEW.out.bam,
+                            ch_bam_bai,
                             params.genozip_license_file,
                             INDEXES.out.fasta_genozip
                         )
                         ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
                     }
 
+            ch_in_genozip_decompress_bam = ch_samplesheet_bam.map { m, file_index -> [m , file_index[0] , file_index[1]] }
 
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
-                ch_samplesheet_bam,
+                ch_in_genozip_decompress_bam,
                 params.genozip_license_file,
                 INDEXES.out.fasta_genozip
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
 
-            ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
+            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
         }
+
+
+        // ch_bam_bai.view {it -> "ch_bam_bai: $it"}
+        // INDEXES.out.bwa_index.view {it -> "bwa_index: $it"}
+        // INDEXES.out.dict_index.view {it -> "dict_index: $it"}
+        // INDEXES.out.faidx_index.view {it -> "faidx_index: $it"}
+        // INDEXES.out.fasta_genozip.view {it -> "fasta_genozip: $it"}
 
 
    emit:

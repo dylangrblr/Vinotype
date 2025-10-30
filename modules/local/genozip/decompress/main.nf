@@ -2,29 +2,29 @@ process GENOZIP_DECOMPRESS {
     tag "$meta.id"
     label 'process_medium'
 
-//FIXME: Use the latest containers for genozip.
-//NOTE: Also needs samtools in the container for generating index, check the environment.yml file
-
-//    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-//        'oras://community.wave.seqera.io/library/genozip:15.0.73--5e7a11b582e9aebe':
-//        'community.wave.seqera.io/library/genozip:15.0.73--b885f85775e92bfa' }"
+    //FIXME: Use the latest containers for genozip
+    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    //     'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc':
+    //     'community.wave.seqera.io/library/bcftools_samtools_genozip:600b21e770b9aafc' }"
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'docker://community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50':
-        'community.wave.seqera.io/library/bcftools_samtools_genozip:6edb384e04414b50' }"
+        'docker://community.wave.seqera.io/library/bcftools_samtools_tabix_genozip:77b4ccef5d13e48b':
+        'community.wave.seqera.io/library/bcftools_samtools_tabix_genozip:77b4ccef5d13e48b' }"
 
 
     input:
-    tuple val(meta), path(bam_or_gvcf)
+    tuple val(meta), path(bam_or_gvcf), path(bai_or_tbi)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
     tuple val(meta), path("*.bam"), emit: bam, optional: true
-    tuple val(meta), path("*.bam"), path("*bai"), emit: bam_bai, optional: true
+    tuple val(meta), path(bai_or_tbi), emit: bai, optional: true
+    tuple val(meta), path("*.bam"), path(bai_or_tbi), emit: bam_bai, optional: true
 
-    tuple val(meta), path("*.g.vcf"), emit: gvcf, optional: true
-    tuple val(meta), path("*.g.vcf"), path("*tbi"), emit: gvcf_tbi, optional: true
+    tuple val(meta), path("*.g.vcf.gz"), emit: gvcf, optional: true
+    tuple val(meta), path(bai_or_tbi), emit: tbi, optional: true
+    tuple val(meta), path("*.g.vcf.gz"), path(bai_or_tbi), emit: gvcf_tbi, optional: true
 
     path "versions.yml"           , emit: versions
 
@@ -34,6 +34,9 @@ process GENOZIP_DECOMPRESS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def run_bcftools_view = ( meta.data_type == 'gvcf.genozip' ) ? "bcftools view ${prefix} -Oz -o ${prefix}.gz" : ''
+    def run_tabix = ( meta.data_type == 'gvcf.genozip' )  ? "tabix -p vcf ${prefix}.gz" : ''
+
 
     """
     genounzip \\
@@ -43,6 +46,9 @@ process GENOZIP_DECOMPRESS {
         --no-cache \\
         --reference ${fasta_genozip} \\
         --output ${prefix}
+
+    ${run_bcftools_view}
+    ${run_tabix}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -57,6 +63,9 @@ process GENOZIP_DECOMPRESS {
     """
 
     touch ${prefix}.bam
+    touch ${prefix}.bam.bai
+    touch ${prefix}.g.vcf
+    touch ${prefix}.tbi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

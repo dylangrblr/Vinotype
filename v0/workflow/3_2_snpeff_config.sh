@@ -70,6 +70,7 @@ else
         if ! grep -q "${ACCESSION}" "${CONFIG_FILE}"; then
             echo "Adding entry to ${CONFIG_FILE}"
 
+
             sed -i "/^# Non-standard Databases$/a # ${ORGANISM} : version ${VERSION}\n${ACCESSION}.genome : ${ORGANISM}" "${CONFIG_FILE}"
         else
             echo "Config entry already exists"
@@ -79,6 +80,7 @@ else
         cd "${SNPEFF_DIR}"
         java -jar snpEff.jar build -gff3 -v "${ACCESSION}" || \
             { echo "snpEff database build failed"; exit 1; }
+
 
         echo "Successful database creation for ${ACCESSION}"
     else
@@ -95,6 +97,7 @@ java -jar -Xmx4g snpEff.jar -v "${ACCESSION}" -stats snpeff_stats.html \
     { echo "snpEff annotation failed"; exit 1; }
 
 echo "Successfully annotated ${INPUT_DIR}/final_filt_maxmiss.vcf.gz"
+
 
 ## This needs to be implemented as well
 ## SNPSIFT

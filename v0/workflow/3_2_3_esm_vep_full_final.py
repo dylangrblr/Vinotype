@@ -50,6 +50,7 @@ def remove_insertions(sequence: str) -> str:
 def find_matching_files(fasta_dir, var_dir):
     matches = []
 
+
     #List all protein files in fasta input dir
     protein_files = [f for f in os.listdir(fasta_dir) if f.endswith('.seq.fasta')]
 
@@ -257,7 +258,7 @@ def main(fasta_dir, var_dir, model_location, scoring_strategy, offset_idx, nogpu
 print("✅ Main processing function defined!")
 
 # -*- coding: utf-8 -*-
-"""Analysis and Visualisation"""
+
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -265,7 +266,7 @@ import pandas as pd
 import numpy as np
 
 def analyze_results(results_df):
-    #Summary stats
+
     total_variants = len(results_df)
     deleterious_count = len(results_df[results_df['score'] > 0])
     tolerated_count = len(results_df[results_df['score'] <= 0])
@@ -303,7 +304,7 @@ def analyze_results(results_df):
 def save_results(results_df, output_filename):
     results_df.to_csv(output_filename, index=False)
     print(f"\n💾 Results saved to '{output_filename}'")
-    
+
 
 print("✅ Results analysis and visualization functions defined!")
 
@@ -329,6 +330,7 @@ print(f"Offset Index: {offset_idx}")
 print(f"GPU Usage: {'Enabled' if not nogpu else 'Disabled'}")
 print(f"Output Filename: {output_filename}")
 
+
 #Check directories
 import os
 if not os.path.exists(fasta_dir):
@@ -340,12 +342,14 @@ if not os.path.exists(var_dir):
 print("\n🔍 Finding matching files...")
 matches = find_matching_files(fasta_dir, var_dir)
 
+
 #Print file processing info
 print("\n📁 Files to be processed:")
 for protein_file, var_file, base_name in matches:
     print(f"  - Protein: {base_name}")
     print(f"    - FASTA File: {protein_file}")
     print(f"    - Variation File: {os.path.basename(var_file)}")
+
 
 #List all fasta files found
 print("\n🧬 FASTA files found:")
@@ -358,6 +362,7 @@ print("\n📝 Variation files found:")
 for filename in os.listdir(var_dir):
     if filename.endswith('.var.txt'):
         print(f"  - {filename}")
+
 
 #Execute
 print("\n🔄 Processing proteins...")
