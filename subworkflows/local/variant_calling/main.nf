@@ -89,37 +89,6 @@ workflow VARIANT_CALLING {
 
 
 
-
-        if(params.use_genozip && params.genozip_license_file) {
-
-            if(params.genozip_compress_gvcfs ) {
-                        GENOZIP_COMPRESS__GVCF(
-                            GATK4_HAPLOTYPECALLER.out.vcf,
-                            params.genozip_license_file,
-                            ch_fasta_genozip
-                        )
-                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS__GVCF.out.versions.first())
-
-                        GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
-                    }
-
-
-            // If samplesheet has GENOZIP VCF files, decompress them
-            GENOZIP_DECOMPRESS__GVCF(
-                ch_samplesheet_gvcf,
-                params.genozip_license_file,
-                ch_fasta_genozip
-            )
-            ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
-
-            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF')
-
-            //ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
-        }
-
-
-
-
         // // Get chromosome names for each BAM
         // SAMTOOLS_IDXSTATS(ch_bam_bai)
         // ch_chr_info = SAMTOOLS_IDXSTATS.out.idxstats.map { meta, idxstats_file ->
