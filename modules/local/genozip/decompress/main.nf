@@ -34,8 +34,6 @@ process GENOZIP_DECOMPRESS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def run_bcftools_view = ( meta.data_type == 'gvcf.genozip' ) ? "bcftools view ${prefix} -Oz -o ${prefix}.gz" : ''
-    def run_tabix = ( meta.data_type == 'gvcf.genozip' )  ? "tabix -p vcf ${prefix}.gz" : ''
 
 
     """
@@ -47,8 +45,8 @@ process GENOZIP_DECOMPRESS {
         --reference ${fasta_genozip} \\
         --output ${prefix}
 
-    ${run_bcftools_view}
-    ${run_tabix}
+    bgzip -c ${prefix} > ${prefix}.gz
+
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
