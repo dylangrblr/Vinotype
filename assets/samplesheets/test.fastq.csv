@@ -1,3 +1,6 @@
-sample,fastq_1,fastq_2,bam,gvcf
-subset_test_Vv_842_CORBEAU_dong,https://zenodo.org/records/17062459/files/subset_test_Vv_842_CORBEAU_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/subset_test_Vv_842_CORBEAU_dong_r2.fq.gz?download=1,,
-subset_test_Vv_B60_CRIMPOSIE_dong,https://zenodo.org/records/17062459/files/subset_test_Vv_B60_CRIMPOSIE_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/subset_test_Vv_B60_CRIMPOSIE_dong_r2.fq.gz?download=1,,
+sample,fastq_1,fastq_2,bam,bai,gvcf,tbi
+test_100k_CRR494777,https://zenodo.org/records/17827436/files/test_100k_CRR494777_f1.fq.gz?download=1,https://zenodo.org/records/17827436/files/test_100k_CRR494777_r2.fq.gz?download=1,,,,
+test_100k_CRR494798,https://zenodo.org/records/17827436/files/test_100k_CRR494798_f1.fq.gz?download=1,https://zenodo.org/records/17827436/files/test_100k_CRR494798_r2.fq.gz?download=1,,,,
+test_100k_CRR494825,https://zenodo.org/records/17827436/files/test_100k_CRR494825_f1.fq.gz?download=1,https://zenodo.org/records/17827436/files/test_100k_CRR494825_r2.fq.gz?download=1,,,,
+test_100k_CRR494874,https://zenodo.org/records/17827436/files/test_100k_CRR494874_f1.fq.gz?download=1,https://zenodo.org/records/17827436/files/test_100k_CRR494874_r2.fq.gz?download=1,,,,
+test_100k_CRR494881,https://zenodo.org/records/17827436/files/test_100k_CRR494881_f1.fq.gz?download=1,https://zenodo.org/records/17827436/files/test_100k_CRR494881_r2.fq.gz?download=1,,,,
