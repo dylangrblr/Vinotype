@@ -128,6 +128,7 @@ workflow REFERENCE_ALIGNMENT {
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
 
+            GENOZIP_DECOMPRESS__BAM.out.bam.view()
 
             SAMTOOLS_INDEX( GENOZIP_DECOMPRESS__BAM.out.bam )
 
