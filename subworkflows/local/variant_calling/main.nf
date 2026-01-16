@@ -129,7 +129,7 @@ workflow VARIANT_CALLING {
 
         ch_gvcf_tbi.dump(tag:'ch_gvcf_tbi')
         ch_gvcf.dump(tag:'ch_gvcf')
-        tbi_files.dump(tag:'tbi_files')
+        ch_tbi.dump(tag:'tbi_files')
 
     emit:
         gvcf_tbi_files = ch_gvcf_tbi
