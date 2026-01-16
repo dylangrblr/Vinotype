@@ -82,9 +82,11 @@ workflow VARIANT_CALLING {
 
             GATK4_INDEXFEATUREFILE( GENOZIP_DECOMPRESS__GVCF.out.gvcf )
 
-            GATK4_INDEXFEATUREFILE.out.index.dump(tag: "GENOZIP_INDEXFEATUREFILE_out_index")
+            GATK4_INDEXFEATUREFILE.out.index.dump(tag: "GATK4_INDEXFEATUREFILE_out_index")
 
             GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf_tbi')
+
+            (GENOZIP_DECOMPRESS__GVCF.out.gvcf).mix(GATK4_INDEXFEATUREFILE.out.index)
 
 
             ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
