@@ -120,6 +120,10 @@ workflow REFERENCE_ALIGNMENT {
 
         ch_in_genozip_decompress_bam = ch_samplesheet_bam.map { m, file_index -> [m , file_index[0] , file_index[1] ?: []] }
 
+
+
+        ch_in_genozip_decompress_bam.view()
+
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
                 ch_in_genozip_decompress_bam,
