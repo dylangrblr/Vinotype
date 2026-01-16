@@ -120,7 +120,7 @@ workflow REFERENCE_ALIGNMENT {
 
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
-                ch_in_genozip_decompress_bam,
+                ch_samplesheet_bam,
                 params.genozip_license_file,
                 INDEXES.out.fasta_genozip
             )
