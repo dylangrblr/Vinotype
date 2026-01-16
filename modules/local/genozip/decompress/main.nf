@@ -13,18 +13,14 @@ process GENOZIP_DECOMPRESS {
 
 
     input:
-    tuple val(meta), path(bam_or_gvcf), path(bai_or_tbi)
+    tuple val(meta), path(bam_or_gvcf)
     path genozip_license_file
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
     tuple val(meta), path("*.bam"), emit: bam, optional: true
-    tuple val(meta), path(bai_or_tbi), emit: bai, optional: true
-    tuple val(meta), path("*.bam"), path(bai_or_tbi), emit: bam_bai, optional: true
 
     tuple val(meta), path("*.g.vcf.gz"), emit: gvcf, optional: true
-    tuple val(meta), path(bai_or_tbi), emit: tbi, optional: true
-    tuple val(meta), path("*.g.vcf.gz"), path(bai_or_tbi), emit: gvcf_tbi, optional: true
 
     path "versions.yml"           , emit: versions
 
@@ -34,7 +30,7 @@ process GENOZIP_DECOMPRESS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-
+    def isBAM = file(input).getExtension() == 'bam' ? true : false
 
     """
     genounzip \\
@@ -45,8 +41,10 @@ process GENOZIP_DECOMPRESS {
         --reference ${fasta_genozip} \\
         --output ${prefix}
 
-    bgzip -c ${prefix} > ${prefix}.gz
 
+    ${isBAM ? "" : "bgzip -c ${prefix} > ${prefix}.gz"}
+
+    ${isBAM ? "" : "rm ${prefix}"}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
