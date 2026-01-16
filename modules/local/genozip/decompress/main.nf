@@ -47,6 +47,8 @@ process GENOZIP_DECOMPRESS {
 
     bgzip -c ${prefix} > ${prefix}.gz
 
+    rm ${prefix}
+
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
