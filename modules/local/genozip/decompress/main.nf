@@ -30,7 +30,7 @@ process GENOZIP_DECOMPRESS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def isBAM = file(input).getExtension() == 'bam' ? true : false
+    def isBAM = file(bam_or_gvcf).getExtension() == 'bam' ? true : false
 
     """
     genounzip \\
