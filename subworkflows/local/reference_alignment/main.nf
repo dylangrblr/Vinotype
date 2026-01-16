@@ -20,6 +20,7 @@ include { PICARD_SORTSAM                      } from '../../../modules/nf-core/p
 include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
 include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main'
+include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_PRE      } from '../../../modules/nf-core/samtools/flagstat/main'
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_POST      } from '../../../modules/nf-core/samtools/flagstat/main'
 
@@ -126,6 +127,11 @@ workflow REFERENCE_ALIGNMENT {
                 INDEXES.out.fasta_genozip
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
+
+
+            SAMTOOLS_INDEX( GENOZIP_DECOMPRESS__BAM.out.bam )
+
+            SAMTOOLS_INDEX.out.bai.dump(tag: "SAMTOOLS_INDEX_out_bai")
 
             ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
         }
