@@ -86,12 +86,10 @@ workflow VARIANT_CALLING {
 
             GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf_tbi')
 
-            (GENOZIP_DECOMPRESS__GVCF.out.gvcf).join(GATK4_INDEXFEATUREFILE.out.index).view()
 
-
-            ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
+            ch_gvcf_tbi = ch_gvcf_tbi.mix((GENOZIP_DECOMPRESS__GVCF.out.gvcf).join(GATK4_INDEXFEATUREFILE.out.index))
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
-            ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
+            ch_tbi = ch_tbi.mix(GATK4_INDEXFEATUREFILE.out.index)
 
             // ch_gvcf_tbi.dump(tag:'ch_gvcf_tbi')
 
@@ -127,6 +125,11 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
+
+
+        ch_gvcf_tbi.dump(tag:'ch_gvcf_tbi')
+        ch_gvcf.dump(tag:'ch_gvcf')
+        tbi_files.dump(tag:'tbi_files')
 
     emit:
         gvcf_tbi_files = ch_gvcf_tbi
