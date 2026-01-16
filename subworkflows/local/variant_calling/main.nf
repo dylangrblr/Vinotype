@@ -62,7 +62,9 @@ workflow VARIANT_CALLING {
                         // GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
                     }
 
-           ch_in_genozip_decompress_gvcf = ch_samplesheet_gvcf.map { m, file_index -> [m , file_index[0] , file_index[1] ?: []] }
+            ch_in_genozip_decompress_gvcf = ch_samplesheet_gvcf.map { m, file_index -> [m , file_index[0] , file_index[1] ?: []] }
+
+            ch_in_genozip_decompress_gvcf.dump(tag: "ch_in_genozip_decompress_gvcf")
 
             // If samplesheet has GENOZIP VCF files, decompress them
             GENOZIP_DECOMPRESS__GVCF(
