@@ -75,61 +75,61 @@ workflow VINOTYPE {
                         .dump(tag: 'ch_samplesheet_gvcf', pretty: true)
 
 
-    VARIANT_CALLING (
-        ch_samplesheet_gvcf,
-        REFERENCE_ALIGNMENT.out.bam_bai,
-        ch_fasta,
-        REFERENCE_ALIGNMENT.out.faidx_index,
-        REFERENCE_ALIGNMENT.out.dict_index,
-        REFERENCE_ALIGNMENT.out.fasta_genozip
-    )
-    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions)
+    // VARIANT_CALLING (
+    //     ch_samplesheet_gvcf,
+    //     REFERENCE_ALIGNMENT.out.bam_bai,
+    //     ch_fasta,
+    //     REFERENCE_ALIGNMENT.out.faidx_index,
+    //     REFERENCE_ALIGNMENT.out.dict_index,
+    //     REFERENCE_ALIGNMENT.out.fasta_genozip
+    // )
+    // // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(VARIANT_CALLING.out.versions)
 
 
-    if (!params.skip_merged_analysis) {
+    // if (!params.skip_merged_analysis) {
 
-        //
-        // SUBWORKFLOW: JOINT_GENOTYPING
-        //
-        JOINT_GENOTYPING (
-            VARIANT_CALLING.out.gvcf_tbi_files,
-            ch_intervals_list,
-            ch_fasta,
-            REFERENCE_ALIGNMENT.out.faidx_index,
-            REFERENCE_ALIGNMENT.out.dict_index,
-            VARIANT_CALLING.out.gvcf_files,
-            VARIANT_CALLING.out.tbi_files,
-        )
-        // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-        ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
-
-
-        //------------------------------
-        // TODO: @abhi18av VARIANT_ANNOTATION (PRE/POST) variant_filtering
-
-        //
-        // SUBWORKFLOW: JOINT_GENOTYPING
-        //
-        VARIANT_FILTERING (
-            JOINT_GENOTYPING.out.gvcf_tbi_files,
-            ch_fasta,
-            REFERENCE_ALIGNMENT.out.faidx_index,
-            REFERENCE_ALIGNMENT.out.dict_index,
-            ch_intervals_list,
-        )
-        // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-        ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
+    //     //
+    //     // SUBWORKFLOW: JOINT_GENOTYPING
+    //     //
+    //     JOINT_GENOTYPING (
+    //         VARIANT_CALLING.out.gvcf_tbi_files,
+    //         ch_intervals_list,
+    //         ch_fasta,
+    //         REFERENCE_ALIGNMENT.out.faidx_index,
+    //         REFERENCE_ALIGNMENT.out.dict_index,
+    //         VARIANT_CALLING.out.gvcf_files,
+    //         VARIANT_CALLING.out.tbi_files,
+    //     )
+    //     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    //     ch_versions = ch_versions.mix(JOINT_GENOTYPING.out.versions)
 
 
-        VARIANT_EFFECT_PREDICTION (
-            VARIANT_FILTERING.out.gvcf_tbi,
-            params.snpeff_db_name,
-            params.snpeff_db,
-            params.snpeff_config
-        )
+    //     //------------------------------
+    //     // TODO: @abhi18av VARIANT_ANNOTATION (PRE/POST) variant_filtering
 
-    }
+    //     //
+    //     // SUBWORKFLOW: JOINT_GENOTYPING
+    //     //
+    //     VARIANT_FILTERING (
+    //         JOINT_GENOTYPING.out.gvcf_tbi_files,
+    //         ch_fasta,
+    //         REFERENCE_ALIGNMENT.out.faidx_index,
+    //         REFERENCE_ALIGNMENT.out.dict_index,
+    //         ch_intervals_list,
+    //     )
+    //     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    //     ch_versions = ch_versions.mix(VARIANT_FILTERING.out.versions)
+
+
+    //     VARIANT_EFFECT_PREDICTION (
+    //         VARIANT_FILTERING.out.gvcf_tbi,
+    //         params.snpeff_db_name,
+    //         params.snpeff_db,
+    //         params.snpeff_config
+    //     )
+
+    // }
 
 
     //------------------------------
