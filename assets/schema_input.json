@@ -34,13 +34,6 @@
                 "format": "file-path",
                 "exists": true
             },
-            "bai": {
-                "errorMessage": "BAI file cannot contain spaces and must have extension '.bai'",
-                "type": "string",
-                "pattern": "^\\S+\\.bai$",
-                "format": "file-path",
-                "exists": true
-            },
              "gvcf": {
                 "errorMessage": "GVCF file cannot contain spaces and must have extension '.g.vcf.genozip'",
                 "type": "string",
@@ -48,14 +41,6 @@
                 "format": "file-path",
                 "exists": true
              },
-            "tbi": {
-                "errorMessage": "TBI file cannot contain spaces and must have extension '.tbi'",
-                "type": "string",
-                "pattern": "^\\S+\\.tbi$",
-                "format": "file-path",
-                "exists": true
-            }
-
         },
         "required": ["sample"]
     }
