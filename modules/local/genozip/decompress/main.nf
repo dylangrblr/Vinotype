@@ -18,9 +18,9 @@ process GENOZIP_DECOMPRESS {
     tuple val(meta2), path(fasta_genozip) // genozip reference fasta file
 
     output:
-    tuple val(meta), path("*.bam.gz"), emit: bam, optional: true
+    tuple val(meta), path("*.bam"), emit: bam, optional: true
     tuple val(meta), path(bai_or_tbi), emit: bai, optional: true
-    tuple val(meta), path("*.bam.gz"), path(bai_or_tbi), emit: bam_bai, optional: true
+    tuple val(meta), path("*.bam"), path(bai_or_tbi), emit: bam_bai, optional: true
 
     tuple val(meta), path("*.g.vcf.gz"), emit: gvcf, optional: true
     tuple val(meta), path(bai_or_tbi), emit: tbi, optional: true
@@ -46,8 +46,6 @@ process GENOZIP_DECOMPRESS {
         --output ${prefix}
 
     bgzip -c ${prefix} > ${prefix}.gz
-
-    rm ${prefix}
 
 
     cat <<-END_VERSIONS > versions.yml
