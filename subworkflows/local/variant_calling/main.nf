@@ -14,6 +14,7 @@ include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/ma
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
+include { GATK4_INDEXFEATUREFILE } from '../../modules/nf-core/gatk4/indexfeaturefile/main.nf'
 
 workflow VARIANT_CALLING {
 
@@ -75,9 +76,16 @@ workflow VARIANT_CALLING {
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__GVCF.out.versions.first())
 
             // GENOZIP_DECOMPRESS__GVCF.out.gvcf.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf')
-            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf_tbi')
 
             // GENOZIP_DECOMPRESS__GVCF.out.gvcf.view()
+
+
+            GENOZIP_INDEXFEATUREFILE( GENOZIP_DECOMPRESS__GVCF.out.gvcf )
+
+            GENOZIP_INDEXFEATUREFILE.out.index.dump(tag: "GENOZIP_INDEXFEATUREFILE_out_index")
+
+            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf_tbi')
+
 
             ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
