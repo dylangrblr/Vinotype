@@ -118,12 +118,6 @@ workflow REFERENCE_ALIGNMENT {
                         ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
                     }
 
-        ch_in_genozip_decompress_bam = ch_samplesheet_bam.map { m, file_index -> [m , file_index[0] , file_index[1] ?: []] }
-
-
-
-        ch_in_genozip_decompress_bam.view()
-
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
                 ch_in_genozip_decompress_bam,
@@ -138,7 +132,7 @@ workflow REFERENCE_ALIGNMENT {
 
             SAMTOOLS_INDEX.out.bai.dump(tag: "SAMTOOLS_INDEX_out_bai")
 
-            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai.join(SAMTOOLS_INDEX.out.bai))
+            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam.join(SAMTOOLS_INDEX.out.bai))
         }
 
 
