@@ -30,7 +30,7 @@ process GENOZIP_DECOMPRESS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def isBAM = file(bam_or_gvcf).getExtension() == 'bam.genozip' ? true : false
+    def isGVCF = meta.data_type == 'gvcf_genozip' ? true : false
 
     """
     genounzip \\
@@ -42,9 +42,9 @@ process GENOZIP_DECOMPRESS {
         --output ${prefix}
 
 
-    ${isBAM ? "" : "bgzip -c ${prefix} > ${prefix}.gz"}
+    ${isGVCF ? "bgzip -c ${prefix} > ${prefix}.gz" : ""}
 
-    ${isBAM ? "" : "rm ${prefix}"}
+    ${isGVCF ? "rm ${prefix}" : ""}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
