@@ -14,7 +14,7 @@ include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/ma
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
 include { GATK4_HAPLOTYPECALLER } from '../../../modules/nf-core/gatk4/haplotypecaller/main.nf'
-include { GATK4_INDEXFEATUREFILE } from '../../modules/nf-core/gatk4/indexfeaturefile/main.nf'
+include { GATK4_INDEXFEATUREFILE } from '../../../modules/nf-core/gatk4/indexfeaturefile/main.nf'
 
 workflow VARIANT_CALLING {
 
