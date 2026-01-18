@@ -71,7 +71,7 @@ workflow PIPELINE_INITIALISATION {
     Channel
         .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
         .map {
-            meta, fastq_1, fastq_2, bam, bai, gvcf, tbi ->
+            meta, fastq_1, fastq_2, bam, gvcf ->
             if(!bam && !gvcf) {
                 if (!fastq_2 ) {
                     return [ meta.id, meta + [ single_end:true, data_type: 'fastq'], [ fastq_1 ] ]
@@ -79,9 +79,9 @@ workflow PIPELINE_INITIALISATION {
                     return [ meta.id, meta + [ single_end:false,  data_type: 'fastq'], [ fastq_1, fastq_2 ] ]
                 }
             } else if (bam) {
-                return [ meta.id, meta + [ data_type: 'bam_genozip'], [ bam, bai ] ]
+                return [ meta.id, meta + [ data_type: 'bam_genozip'], [ bam ] ]
             } else {
-                return [ meta.id, meta + [ data_type: 'gvcf_genozip'], [ gvcf, tbi ] ]
+                return [ meta.id, meta + [ data_type: 'gvcf_genozip'], [ gvcf ] ]
             }
         }
         .groupTuple()

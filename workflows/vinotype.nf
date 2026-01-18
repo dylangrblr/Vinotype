@@ -53,6 +53,7 @@ workflow VINOTYPE {
 
     ch_samplesheet_bam = ch_samplesheet
                         .filter { meta, files -> meta.data_type == 'bam_genozip' }
+                        .map { m, f -> [m , f] }
                         .dump(tag: 'ch_samplesheet_bam', pretty: true)
 
 

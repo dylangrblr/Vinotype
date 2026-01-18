@@ -20,6 +20,7 @@ include { PICARD_SORTSAM                      } from '../../../modules/nf-core/p
 include { PICARD_MARKDUPLICATES               } from '../../../modules/nf-core/picard/markduplicates/main'
 include { PICARD_ADDORREPLACEREADGROUPS       } from '../../../modules/nf-core/picard/addorreplacereadgroups/main'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main'
+include { SAMTOOLS_INDEX     } from '../../../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_PRE      } from '../../../modules/nf-core/samtools/flagstat/main'
 include { SAMTOOLS_FLAGSTAT as  SAMTOOLS_FLAGSTAT_POST      } from '../../../modules/nf-core/samtools/flagstat/main'
 
@@ -117,17 +118,21 @@ workflow REFERENCE_ALIGNMENT {
                         ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
                     }
 
-            ch_in_genozip_decompress_bam = ch_samplesheet_bam.map { m, file_index -> [m , file_index[0] , file_index[1]] }
-
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
-                ch_in_genozip_decompress_bam,
+                ch_samplesheet_bam,
                 params.genozip_license_file,
                 INDEXES.out.fasta_genozip
             )
             ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__BAM.out.versions.first())
 
-            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam_bai)
+            // GENOZIP_DECOMPRESS__BAM.out.bam.view()
+
+            SAMTOOLS_INDEX( GENOZIP_DECOMPRESS__BAM.out.bam )
+
+            SAMTOOLS_INDEX.out.bai.dump(tag: "SAMTOOLS_INDEX_out_bai")
+
+            ch_bam_bai = ch_bam_bai.mix(GENOZIP_DECOMPRESS__BAM.out.bam.join(SAMTOOLS_INDEX.out.bai))
         }
 
 

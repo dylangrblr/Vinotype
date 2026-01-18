@@ -63,13 +63,10 @@ workflow VARIANT_CALLING {
                         // GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
                     }
 
-            ch_in_genozip_decompress_gvcf = ch_samplesheet_gvcf.map { m, file_index -> [m , file_index[0] , file_index[1] ?: []] }
-
-            ch_in_genozip_decompress_gvcf.dump(tag: "ch_in_genozip_decompress_gvcf")
 
             // If samplesheet has GENOZIP VCF files, decompress them
             GENOZIP_DECOMPRESS__GVCF(
-                ch_in_genozip_decompress_gvcf,
+                ch_samplesheet_gvcf,
                 params.genozip_license_file,
                 ch_fasta_genozip
             )
@@ -82,14 +79,12 @@ workflow VARIANT_CALLING {
 
             GATK4_INDEXFEATUREFILE( GENOZIP_DECOMPRESS__GVCF.out.gvcf )
 
-            GATK4_INDEXFEATUREFILE.out.index.dump(tag: "GENOZIP_INDEXFEATUREFILE_out_index")
-
-            GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi.dump(tag: 'GENOZIP_DECOMPRESS__GVCF_gvcf_tbi')
+            GATK4_INDEXFEATUREFILE.out.index.dump(tag: "GATK4_INDEXFEATUREFILE_out_index")
 
 
-            ch_gvcf_tbi = ch_gvcf_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf_tbi)
+            ch_gvcf_tbi = ch_gvcf_tbi.mix((GENOZIP_DECOMPRESS__GVCF.out.gvcf).join(GATK4_INDEXFEATUREFILE.out.index))
             ch_gvcf = ch_gvcf.mix(GENOZIP_DECOMPRESS__GVCF.out.gvcf)
-            ch_tbi = ch_tbi.mix(GENOZIP_DECOMPRESS__GVCF.out.tbi)
+            ch_tbi = ch_tbi.mix(GATK4_INDEXFEATUREFILE.out.index)
 
             // ch_gvcf_tbi.dump(tag:'ch_gvcf_tbi')
 
@@ -125,6 +120,11 @@ workflow VARIANT_CALLING {
         // ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_IDXSTATS.out.versions)
         // ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
+
+
+        ch_gvcf_tbi.dump(tag:'ch_gvcf_tbi')
+        ch_gvcf.dump(tag:'ch_gvcf')
+        ch_tbi.dump(tag:'tbi_files')
 
     emit:
         gvcf_tbi_files = ch_gvcf_tbi
