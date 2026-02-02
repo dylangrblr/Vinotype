@@ -35,6 +35,7 @@ process PICARD_SORTSAM {
     picard \\
         SortSam \\
         -Xmx${avail_mem}M \\
+        $args \\
         I=$bam \\
         O=${prefix}.bam \\
         SORT_ORDER=$sort_order
