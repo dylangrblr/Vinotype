@@ -38,7 +38,7 @@ workflow VARIANT_CALLING {
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }\
 
-        if(skip_gatk4_haplotypecaller_spark) {
+        if(params.skip_gatk4_haplotypecaller_spark) {
 
             GATK4_HAPLOTYPECALLER(
                 ch_bam_bai_extended,
