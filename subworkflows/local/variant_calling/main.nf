@@ -36,19 +36,39 @@ workflow VARIANT_CALLING {
         ch_tbi = Channel.empty()
 
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
-        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
-        GATK4_HAPLOTYPECALLER(
-            ch_bam_bai_extended,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
-            [[],[]],
-            [[],[]],
-        )
-        ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
-        ch_gvcf_tbi = GATK4_HAPLOTYPECALLER.out.vcf_tbi
-        ch_tbi = GATK4_HAPLOTYPECALLER.out.tbi
-        ch_gvcf = GATK4_HAPLOTYPECALLER.out.vcf
+        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }\
+
+        if(skip_gatk4_haplotypecaller_spark) {
+
+            GATK4_HAPLOTYPECALLER(
+                ch_bam_bai_extended,
+                ch_fasta,
+                ch_faidx_index,
+                ch_dict_index,
+                [[],[]],
+                [[],[]],
+            )
+            ch_versions = ch_versions.mix(GATK4_HAPLOTYPECALLER.out.versions)
+            ch_gvcf_tbi = GATK4_HAPLOTYPECALLER.out.vcf_tbi
+            ch_tbi = GATK4_HAPLOTYPECALLER.out.tbi
+            ch_gvcf = GATK4_HAPLOTYPECALLER.out.vcf
+
+        } else {
+
+            GATK4SPARK_HAPLOTYPECALLER(
+                ch_bam_bai_extended,
+                ch_fasta,
+                ch_faidx_index,
+                ch_dict_index,
+                [[],[]],
+                [[],[]],
+            )
+            ch_versions = ch_versions.mix(GATK4SPARK_HAPLOTYPECALLER.out.versions)
+            ch_gvcf_tbi = GATK4SPARK_HAPLOTYPECALLER.out.vcf_tbi
+            ch_tbi = GATK4SPARK_HAPLOTYPECALLER.out.tbi
+            ch_gvcf = GATK4SPARK_HAPLOTYPECALLER.out.vcf
+
+        }
 
         if(params.use_genozip && params.genozip_license_file) {
 
