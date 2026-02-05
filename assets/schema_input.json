@@ -30,16 +30,12 @@
              "bam": {
                 "errorMessage": "BAM file cannot contain spaces and must have extension '.bam.genozip'",
                 "type": "string",
-                "pattern": "^\\S+\\.bam\\.genozip$",
-                "format": "file-path",
-                "exists": true
+                "pattern": "^\\S+\\.bam\\.genozip$"
             },
              "gvcf": {
                 "errorMessage": "GVCF file cannot contain spaces and must have extension '.g.vcf.genozip'",
                 "type": "string",
-                "pattern": "^\\S+\\.g\\.vcf\\.genozip$",
-                "format": "file-path",
-                "exists": true
+                "pattern": "^\\S+\\.g\\.vcf\\.genozip$"
              },
         },
         "required": ["sample"]
