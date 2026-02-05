@@ -37,7 +37,7 @@
                 "type": "string",
                 "pattern": "^\\S+\\.g\\.vcf\\.genozip$"
              }
-        }
+        },
         "required": ["sample"]
     }
 }
