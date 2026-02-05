@@ -36,8 +36,8 @@
                 "errorMessage": "GVCF file cannot contain spaces and must have extension '.g.vcf.genozip'",
                 "type": "string",
                 "pattern": "^\\S+\\.g\\.vcf\\.genozip$"
-             },
-        },
+             }
+        }
         "required": ["sample"]
     }
 }
