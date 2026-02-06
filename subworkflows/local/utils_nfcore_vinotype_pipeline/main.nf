@@ -94,6 +94,9 @@ workflow PIPELINE_INITIALISATION {
         }
         .set { ch_samplesheet }
 
+
+    ch_samplesheet.view()
+
     ch_samplesheet.dump(tag: "CH_SAMPLESHEET")
 
     ch_fasta = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_fasta])
