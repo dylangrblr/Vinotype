@@ -74,16 +74,14 @@ workflow VARIANT_CALLING {
 
         if(params.use_genozip && params.genozip_license_file) {
 
-            if(params.genozip_compress_gvcfs ) {
-                        GENOZIP_COMPRESS__GVCF(
-                            ch_gvcf_tbi,
-                            params.genozip_license_file,
-                            ch_fasta_genozip
-                        )
-                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS__GVCF.out.versions.first())
+            GENOZIP_COMPRESS__GVCF(
+                ch_gvcf_tbi,
+                params.genozip_license_file,
+                ch_fasta_genozip
+            )
+            ch_versions = ch_versions.mix(GENOZIP_COMPRESS__GVCF.out.versions.first())
 
-                        // GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
-                    }
+            // GENOZIP_COMPRESS__GVCF.out.genozipped.dump(tag: 'GENOZIP_COMPRESS__GVCF')
 
 
             // If samplesheet has GENOZIP VCF files, decompress them
