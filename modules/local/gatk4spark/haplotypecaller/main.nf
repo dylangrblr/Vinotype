@@ -6,10 +6,8 @@ process GATK4SPARK_HAPLOTYPECALLER {
 
 
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/49/498aea9c9bcaf736b9fb2a01366c1b7b38ccc0d38143178afc325d6a93241447/data'
-        : 'community.wave.seqera.io/library/gatk4-spark:4.6.2.0--8b5cd67ee60a714e'}"
-
-    // container "docker.io/broadinstitute/gatk:4.6.2.0"
+        ? 'docker://community.wave.seqera.io/library/gatk4-spark_gcnvkernel:e6bb8e7fdc1a238e'
+        : 'community.wave.seqera.io/library/gatk4-spark_gcnvkernel:e6bb8e7fdc1a238e'}"
 
     input:
     tuple val(meta),  path(input), path(input_index), path(intervals), path(dragstr_model)
