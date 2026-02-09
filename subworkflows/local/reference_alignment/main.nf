@@ -109,14 +109,12 @@ workflow REFERENCE_ALIGNMENT {
 
         if(params.use_genozip && params.genozip_license_file) {
 
-            if(params.genozip_compress_bams ) {
-                        GENOZIP_COMPRESS__BAM(
-                            ch_bam_bai,
-                            params.genozip_license_file,
-                            INDEXES.out.fasta_genozip
-                        )
-                        ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
-                    }
+            GENOZIP_COMPRESS__BAM(
+                ch_bam_bai,
+                params.genozip_license_file,
+                INDEXES.out.fasta_genozip
+            )
+            ch_versions = ch_versions.mix(GENOZIP_COMPRESS__BAM.out.versions.first())
 
             // If samplesheet has GENOZIP BAM files, decompress them
             GENOZIP_DECOMPRESS__BAM(
