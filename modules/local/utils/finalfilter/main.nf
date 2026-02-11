@@ -32,7 +32,7 @@ process UTILS_FINALFILTER {
         -f ${fasta} \\
         ${vcf} | \\
     bcftools filter \\
-        -e '${task.ext.args_bcftools_filter_snps}' | \\
+        -e 'ALT=\"*\" || ${task.ext.args_bcftools_filter_snps}' | \\
     ${optional_indel_filter} \\
     bcftools norm \\
         ${task.ext.args_bcftools_norm_2} | \\
