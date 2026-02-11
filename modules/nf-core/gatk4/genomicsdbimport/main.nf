@@ -1,6 +1,6 @@
 process GATK4_GENOMICSDBIMPORT {
     tag "$meta.id"
-    label 'process_single'
+    label 'process_long`'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -32,7 +32,7 @@ process GATK4_GENOMICSDBIMPORT {
     // Determine input command: sample map or list of --variant
     input_command = gvcfs.collect { "--variant $it" }.join(' ')
     genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
-    interval_command = "--intervals ${interval_file}"     
+    interval_command = "--intervals ${interval_file}"
     updated_db = "${meta.id}"
 
     // // Interval list mode
