@@ -1,6 +1,6 @@
 process GATK4_GENOTYPEGVCFS {
     tag "$meta.id"
-    label 'process_single'
+    label 'process_long'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -8,7 +8,7 @@ process GATK4_GENOTYPEGVCFS {
         'community.wave.seqera.io/library/gatk4_gcnvkernel:e48d414933d188cd' }"
 
     input:
-    tuple val(meta), path(input) 
+    tuple val(meta), path(input)
     tuple val(meta2), path(intervals)
     tuple val(meta3), path(fasta)
     tuple val(meta4), path(fai)
