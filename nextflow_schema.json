@@ -5,6 +5,22 @@
     "description": "A streamlined computational framework geared towards the effective, large-scale identification of sequence variants from Illumina short-read data for grapevine (Vitis spp.)",
     "type": "object",
     "$defs": {
+        "joint_genotyping_options": {
+            "title": "Joint genotyping options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Options for the joint genotyping subworkflow.",
+            "properties": {
+                "genomicsdb_batch_size": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Batch size for GenomicsDBImport --batch-size argument. Controls how many sample readers are open at once to limit memory consumption. 0 means no batching (all samples opened at once).",
+                    "help_text": "Set to a non-zero value when importing large cohorts to reduce memory usage. For example, a value of 50 processes 50 samples at a time. If more than 100 batches are used, consider also enabling the --consolidate flag via ext.args in modules.config. See https://gatk.broadinstitute.org/hc/en-us/articles/360051305591-GenomicsDBImport for details.",
+                    "fa_icon": "fas fa-layer-group",
+                    "minimum": 0
+                }
+            }
+        },
         "input_output_options": {
             "title": "Input/output options",
             "type": "object",
@@ -188,6 +204,9 @@
         }
     },
     "allOf": [
+        {
+            "$ref": "#/$defs/joint_genotyping_options"
+        },
         {
             "$ref": "#/$defs/input_output_options"
         },
