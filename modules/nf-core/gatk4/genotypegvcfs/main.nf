@@ -1,6 +1,6 @@
 process GATK4_GENOTYPEGVCFS {
     tag "$meta.id"
-    label 'process_long'
+    label 'process_genotype_gvcf'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
