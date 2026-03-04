@@ -93,9 +93,16 @@ workflow JOINT_GENOTYPING {
             ch_fasta,
             ch_faidx_index,
             ch_dict_index,
-            ch_intervals_list
+
+            //TODO @abhi18av: This should be a separate intervals list for each
+            //chromosome. We can dump this into a file within the process.
+            ch_chromosome_name
         )
         ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions.first())
+
+
+    //NOTE: @abhi18av - now 20 - instances of GENOMICSDBIMPORT have run and they
+    //need to be passed individually to GENOTYPEGVCFS
 
 
         // 8. GenotypeGVCFs
@@ -118,6 +125,14 @@ workflow JOINT_GENOTYPING {
         // ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
         // ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
+
+
+    //NOTE: @abhi18av, then the output VCF files need to be reconciled using
+    //gatk-MergeVCF
+
+
+    // Then another gatk-MergeVCF to combine all the vcf files into a single
+    // multi-sample vcf
 
     emit:
         gvcf_tbi_files = GATK4_GENOTYPEGVCFS.out.vcf_tbi

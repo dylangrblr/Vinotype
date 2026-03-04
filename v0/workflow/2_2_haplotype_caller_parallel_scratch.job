@@ -66,6 +66,7 @@ gatk_fast () {
 export -f gatk_fast
 
 #Split BAM file into 5 parts
+# NOTE: @abhi18av Level-2 split
 java -Xmx25G -jar "${jar_file}" SplitSamByNumberOfReads \
     I="${chr_subset}" \
     OUT_PREFIX="$(basename ${chr_subset%.bam})_part" \

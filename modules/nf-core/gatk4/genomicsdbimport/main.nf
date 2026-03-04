@@ -1,5 +1,5 @@
 process GATK4_GENOMICSDBIMPORT {
-    tag "$meta.id"
+    tag "$chromosome_name"
     label 'process_long'
 
     conda "${moduleDir}/environment.yml"
@@ -14,7 +14,7 @@ process GATK4_GENOMICSDBIMPORT {
         tuple val(meta1), path(reference_fasta)
         tuple val(meta2), path(reference_fasta_index)
         tuple val(meta3), path(reference_dict)
-        tuple val(meta4), path(interval_file)
+        val(chromosome_name)
 
 
     output:

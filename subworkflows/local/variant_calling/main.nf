@@ -113,6 +113,27 @@ workflow VARIANT_CALLING {
 
 
 
+    //TODO: SPLIT THE GVCF per chromosome, per sample using => 1 sample => 20 chromosomes
+    // bcftools view -r chr1 sample1.g.vcf.gz -O z -o sample1.chr1.g.vcf.gz
+    // bcftools index sample1.chr1.g.vcf.gz
+
+
+    // We also need to do reblock + normalization, to make sure there are no
+    // overlapping regions.
+
+    sample1.chr1.g.vcf.gz, index.sample1...
+    sample2.chr1.g.vcf.gz
+    sample3.chr1.g.vcf.gz
+    sample4.chr1.g.vcf.gz
+
+
+
+    // bcftools view -t chr1 sample1.g.vcf.gz -O z -o sample1.chr1.g.vcf.gz
+
+
+
+
+
 
         // // Get chromosome names for each BAM
         // SAMTOOLS_IDXSTATS(ch_bam_bai)
