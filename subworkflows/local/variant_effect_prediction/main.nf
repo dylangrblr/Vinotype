@@ -11,6 +11,9 @@ workflow VARIANT_EFFECT_PREDICTION {
 
     main:
 
+    //We could merge the per-chromosome multi-sample files into a single GVCF
+    //which should be published as is and then fed into the existing SNPEFF processes
+
     ch_versions = Channel.empty()
 
     ch_snpeff_in = Channel.of([snpeff_db_name, snpeff_db, snpeff_config])

@@ -1,0 +1,66 @@
+name: bcftools_splitgvcfbychromosome
+description: Split a gVCF into per-chromosome bgzipped gVCFs and create tabix indexes.
+keywords:
+  - split
+  - gvcf
+  - chromosome
+  - bcftools
+tools:
+  - bcftools:
+      description: |
+        Utilities for variant calling and manipulating VCF and BCF files.
+      homepage: http://samtools.github.io/bcftools/bcftools.html
+      documentation: http://www.htslib.org/doc/bcftools.html
+      doi: 10.1093/bioinformatics/btp352
+      licence: ["MIT"]
+      identifier: biotools:bcftools
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information.
+          e.g. [ id:'test' ]
+    - gvcf:
+        type: file
+        description: Input sample-level gVCF.
+        pattern: "*.g.vcf.gz"
+    - tbi:
+        type: file
+        description: Tabix index for the input gVCF.
+        pattern: "*.tbi"
+    - chromosome:
+        type: string
+        description: Chromosome/contig name to extract.
+output:
+  - vcf_tbi:
+      - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information.
+      - "*.g.vcf.gz":
+          type: file
+          description: Per-chromosome gVCF.
+      - "*.g.vcf.gz.tbi":
+          type: file
+          description: Tabix index for per-chromosome gVCF.
+  - vcf:
+      - meta:
+          type: map
+      - "*.g.vcf.gz":
+          type: file
+          description: Per-chromosome gVCF.
+  - tbi:
+      - meta:
+          type: map
+      - "*.g.vcf.gz.tbi":
+          type: file
+          description: Tabix index for per-chromosome gVCF.
+  - versions:
+      - versions.yml:
+          type: file
+          description: File containing software versions.
+          pattern: "versions.yml"
+authors:
+  - "@abhi18av"
+maintainers:
+  - "@abhi18av"

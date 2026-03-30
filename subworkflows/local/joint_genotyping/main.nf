@@ -41,26 +41,21 @@ workflow JOINT_GENOTYPING {
         // ch_gvcf_by_sample = BCFTOOLS_INDEX.out.tbi
         //     .groupTuple(0) // group by sample_id
 
-        // // 3. Concatenate per-sample GVCFs
-        // BCFTOOLS_CONCAT(
-        //     ch_gvcf_by_sample.map { sample, gvcf_list -> tuple(sample, gvcf_list) }
-        // )
+        // 4. Normalize concatenated GVCFs
+        BCFTOOLS_NORM(
+            BCFTOOLS_CONCAT.out.vcf.map { sample, vcf -> tuple(sample, vcf, ch_fasta.first()) },
+            ch_fasta
+        )
 
-        // // 4. Normalize concatenated GVCFs
-        // BCFTOOLS_NORM(
-        //     BCFTOOLS_CONCAT.out.vcf.map { sample, vcf -> tuple(sample, vcf, ch_fasta.first()) },
-        //     ch_fasta
-        // )
-
-        // // 5. Reblock GVCFs
-        // GATK4_REBLOCKGVCF(
-        //     BCFTOOLS_NORM.out.vcf.map { sample, norm_vcf -> tuple(sample, norm_vcf, ch_fasta.first()) },
-        //     ch_fasta,
-        //     ch_samtools_faidx,
-        //     ch_samtools_dict,
-        //     [],
-        //     []
-        // )
+        // 5. Reblock GVCFs
+        GATK4_REBLOCKGVCF(
+            BCFTOOLS_NORM.out.vcf.map { sample, norm_vcf -> tuple(sample, norm_vcf, ch_fasta.first()) },
+            ch_fasta,
+            ch_samtools_faidx,
+            ch_samtools_dict,
+            [],
+            []
+        )
 
         // // 6. Create sample map for GenomicsDBImport
         // ch_sample_map = GATK4_REBLOCKGVCF.out.vcf
@@ -93,9 +88,16 @@ workflow JOINT_GENOTYPING {
             ch_fasta,
             ch_faidx_index,
             ch_dict_index,
-            ch_intervals_list
+
+            //TODO @abhi18av: This should be a separate intervals list for each
+            //chromosome. We can dump this into a file within the process.
+            ch_chromosome_name
         )
         ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions.first())
+
+
+    //NOTE: @abhi18av - now 20 - instances of GENOMICSDBIMPORT have run and they
+    //need to be passed individually to GENOTYPEGVCFS
 
 
         // 8. GenotypeGVCFs
@@ -118,6 +120,22 @@ workflow JOINT_GENOTYPING {
         // ch_versions = ch_versions.mix(GATK4_GENOMICSDBIMPORT.out.versions)
         // ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions)
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
+
+
+    //NOTE: @abhi18av, then the output VCF files need to be reconciled using
+    //gatk-MergeVCF
+
+
+    // Then another gatk-MergeVCF to combine all the vcf files into a single
+    // multi-sample vcf
+
+
+        // // 3. Concatenate per-sample GVCFs -> The output is fed into GATK_SELECTVARIANTS
+        // BCFTOOLS_CONCAT(
+        //     ch_gvcf_by_sample.map { sample, gvcf_list -> tuple(sample, gvcf_list) }
+        // )
+
+
 
     emit:
         gvcf_tbi_files = GATK4_GENOTYPEGVCFS.out.vcf_tbi
