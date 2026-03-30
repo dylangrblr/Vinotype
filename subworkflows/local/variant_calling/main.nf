@@ -10,6 +10,7 @@
 
 include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__GVCF      } from '../../../modules/local/genozip/compress/main'
 include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__GVCF  } from '../../../modules/local/genozip/decompress/main'
+include { BCFTOOLS_SPLITGVCFBYCHROMOSOME } from '../../../modules/local/bcftools/splitgvcfbychromosome/main'
 include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/main.nf'
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
@@ -111,6 +112,29 @@ workflow VARIANT_CALLING {
             // ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
         }
 
+        // Create one task per (sample gVCF, chromosome) and split with bcftools view.
+        ch_chromosomes = ch_faidx_index
+            .map { _meta, fai ->
+                file(fai).text.readLines()
+                    .findAll { line -> line?.trim() }
+                    .collect { line -> line.split('\t')[0] }
+            }
+            .flatten()
+            .unique()
+
+        ch_gvcf_tbi_per_chromosome = ch_gvcf_tbi
+            .cross(ch_chromosomes)
+            .map { gvcf_tuple, chromosome ->
+                def (meta, gvcf, tbi) = gvcf_tuple
+                tuple(meta + [chromosome: chromosome], gvcf, tbi, chromosome)
+            }
+
+        BCFTOOLS_SPLITGVCFBYCHROMOSOME(ch_gvcf_tbi_per_chromosome)
+        ch_versions = ch_versions.mix(BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.versions)
+
+        ch_gvcf_tbi = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.vcf_tbi
+        ch_gvcf = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.vcf
+        ch_tbi = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.tbi
 
 
     //TODO: SPLIT THE GVCF per chromosome, per sample using => 1 sample => 20 chromosomes
