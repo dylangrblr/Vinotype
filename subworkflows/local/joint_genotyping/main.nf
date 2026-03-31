@@ -64,7 +64,7 @@ workflow JOINT_GENOTYPING {
         // One GenotypeGVCFs instance per imported chromosome workspace.
         GATK4_GENOTYPEGVCFS(
                   GATK4_GENOMICSDBIMPORT.out.updatedb,
-              ch_intervals_list.first(),
+              ch_intervals_list,
                   ch_fasta,
                   ch_faidx_index,
                   ch_dict_index)
@@ -82,7 +82,7 @@ workflow JOINT_GENOTYPING {
 
         GATK4_MERGEVCFS(
             ch_merge_input,
-            ch_dict_index.first()
+            ch_dict_index
         )
 
         ch_versions = ch_versions.mix(GATK4_MERGEVCFS.out.versions.first())

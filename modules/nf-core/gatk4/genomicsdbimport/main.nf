@@ -30,9 +30,9 @@ process GATK4_GENOMICSDBIMPORT {
     prefix   = task.ext.prefix ?: "${meta.id}"
 
     // Determine input command: sample map or list of --variant
-    input_command = gvcfs.collect { "--variant $it" }.join(' ')
+    input_command = gvcfs.collect { gvcf -> "--variant ${gvcf}" }.join(' ')
     genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
-    interval_command = "--intervals ${interval_file}"
+    interval_command = chromosome_name ? "--intervals ${chromosome_name}" : ""
     updated_db = "${meta.id}"
 
     // // Interval list mode

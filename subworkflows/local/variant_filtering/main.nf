@@ -42,10 +42,10 @@ workflow VARIANT_FILTERING {
 
         // Collect version info
         ch_versions = channel.empty()
-        ch_intervals_list_val = ch_intervals_list.first()
-        ch_fasta_val = ch_fasta.first()
-        ch_faidx_index_val = ch_faidx_index.first()
-        ch_dict_index_val = ch_dict_index.first()
+        ch_intervals_list_val = ch_intervals_list
+        ch_fasta_val = ch_fasta
+        ch_faidx_index_val = ch_faidx_index
+        ch_dict_index_val = ch_dict_index
 
         // Each tuple in ch_vcf_tbi is processed independently (one run per merged sample VCF/TBI).
     //TODO: 20 instances of this process (per-chr multi-sample)
