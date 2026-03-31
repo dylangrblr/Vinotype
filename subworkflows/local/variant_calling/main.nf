@@ -37,10 +37,10 @@ workflow VARIANT_CALLING {
     main:
 
         // Collect version info
-        ch_versions = Channel.empty()
-        ch_gvcf_tbi = Channel.empty()
-        ch_gvcf = Channel.empty()
-        ch_tbi = Channel.empty()
+        ch_versions = channel.empty()
+        ch_gvcf_tbi = channel.empty()
+        ch_gvcf = channel.empty()
+        ch_tbi = channel.empty()
 
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
         ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }\
@@ -127,7 +127,7 @@ workflow VARIANT_CALLING {
             .unique()
 
         ch_gvcf_tbi_per_chromosome = ch_gvcf_tbi
-            .cross(ch_chromosomes)
+            .combine(ch_chromosomes)
             .map { gvcf_tuple, chromosome ->
                 def (meta, gvcf, tbi) = gvcf_tuple
                 tuple(meta + [chromosome: chromosome], gvcf, tbi, chromosome)
