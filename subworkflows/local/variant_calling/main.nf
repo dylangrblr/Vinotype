@@ -30,7 +30,7 @@ workflow VARIANT_CALLING {
         ch_fasta    // tuple(meta, fasta)
         ch_faidx_index  // tuple(meta, faidx_index)
         ch_dict_index  // tuple(meta, dict_index)
-        ch_intervals_list  // tuple(meta, intervals_list)
+        _ch_intervals_list  // tuple(meta, intervals_list)
         ch_fasta_genozip  // tuple(meta, fasta_genozip)
 
 
@@ -128,8 +128,7 @@ workflow VARIANT_CALLING {
 
         ch_gvcf_tbi_per_chromosome = ch_gvcf_tbi
             .combine(ch_chromosomes)
-            .map { gvcf_tuple, chromosome ->
-                def (meta, gvcf, tbi) = gvcf_tuple
+            .map { meta, gvcf, tbi, chromosome ->
                 tuple(meta + [chromosome: chromosome], gvcf, tbi, chromosome)
             }
 
