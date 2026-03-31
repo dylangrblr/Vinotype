@@ -149,10 +149,10 @@ workflow VARIANT_CALLING {
     // We also need to do reblock + normalization, to make sure there are no
     // overlapping regions.
 
-    sample1.chr1.g.vcf.gz, index.sample1...
-    sample2.chr1.g.vcf.gz
-    sample3.chr1.g.vcf.gz
-    sample4.chr1.g.vcf.gz
+    //sample1.chr1.g.vcf.gz, index.sample1...
+    //sample2.chr1.g.vcf.gz
+    //sample3.chr1.g.vcf.gz
+    //sample4.chr1.g.vcf.gz
 
 
 
