@@ -1,14 +1,13 @@
 /*
  * Subworkflow: joint_genotyping
- * Purpose: Combine per-chromosome GVCFs, normalize, reblock, import to GenomicsDB, genotype, and select variants.
+ * Purpose: Import per-chromosome GVCFs to GenomicsDB and emit chromosome-level multi-sample VCFs.
  * Inputs:
  *   - ch_gvcf_bins: Channel emitting tuples [ sample_id, path(gvcf) ] for all bins
  *   - ch_fasta: Channel emitting path to reference FASTA
  *   - ch_intervals: Channel emitting path to intervals.list (optional, can be generated)
  * Outputs:
- *   - snp_vcf: Path to final SNP VCF
- *   - indel_vcf: Path to final INDEL VCF
- *   - versions: Channel with version information from all modules
+ *   - gvcf_tbi_files: Channel of chromosome-level tuple(meta, vcf, tbi)
+ *   - versions: Channel with version information from executed modules
  */
 
 include { BCFTOOLS_INDEX         } from '../../../modules/nf-core/bcftools/index/main.nf'
@@ -17,7 +16,6 @@ include { BCFTOOLS_NORM          } from '../../../modules/nf-core/bcftools/norm/
 include { GATK4_REBLOCKGVCF      } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { GATK4_GENOMICSDBIMPORT } from '../../../modules/nf-core/gatk4/genomicsdbimport/main.nf'
 include { GATK4_GENOTYPEGVCFS    } from '../../../modules/nf-core/gatk4/genotypegvcfs/main.nf'
-include { GATK4_MERGEVCFS        } from '../../../modules/nf-core/gatk4/mergevcfs/main.nf'
 workflow JOINT_GENOTYPING {
 
     take:
@@ -71,22 +69,6 @@ workflow JOINT_GENOTYPING {
 
         ch_versions = ch_versions.mix(GATK4_GENOTYPEGVCFS.out.versions.first())
 
-        // Merge chromosome-level GenotypeGVCFs outputs before variant selection/filtering.
-        ch_merge_input = GATK4_GENOTYPEGVCFS.out.vcf_tbi
-            .map { meta, vcf, _tbi ->
-                def merge_id = (meta.id as String).replaceFirst(/\.[^.]+$/, '')
-                tuple(merge_id, vcf)
-            }
-            .groupTuple(by: 0)
-            .map { merge_id, vcfs -> tuple([id: merge_id], vcfs) }
-
-        GATK4_MERGEVCFS(
-            ch_merge_input,
-            ch_dict_index
-        )
-
-        ch_versions = ch_versions.mix(GATK4_MERGEVCFS.out.versions.first())
-
     //GATK4_GENOTYPEGVCFS.out.vcf.dump(tag: 'GenotypeGVCFs output', pretty: true)
 
         // Collect version info
@@ -99,14 +81,7 @@ workflow JOINT_GENOTYPING {
         // ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS.out.versions)
 
 
-    //NOTE: @abhi18av, then the output VCF files need to be reconciled using
-    //gatk-MergeVCF
-
-
-    // Then another gatk-MergeVCF to combine all the vcf files into a single
-    // multi-sample vcf
-
     emit:
-        gvcf_tbi_files = GATK4_MERGEVCFS.out.vcf.join(GATK4_MERGEVCFS.out.tbi)
+        gvcf_tbi_files = GATK4_GENOTYPEGVCFS.out.vcf_tbi
         versions  = ch_versions
 }
