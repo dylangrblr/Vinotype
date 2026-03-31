@@ -32,7 +32,28 @@ workflow JOINT_GENOTYPING {
 
         ch_versions = Channel.empty()
 
-        ch_reblocked_by_chromosome = ch_gvcf_tbi
+        ch_intervals_path = ch_intervals_list.map { _meta, intervals -> intervals }
+        ch_fasta_path = ch_fasta.map { _meta, fasta -> fasta }
+        ch_faidx_path = ch_faidx_index.map { _meta, fai -> fai }
+        ch_dict_path = ch_dict_index.map { _meta, dict -> dict }
+
+        ch_reblock_input = ch_gvcf_tbi
+            .combine(ch_intervals_path)
+            .map { meta, gvcf, tbi, intervals -> tuple(meta, gvcf, tbi, intervals) }
+
+        GATK4_REBLOCKGVCF(
+            ch_reblock_input,
+            ch_fasta_path,
+            ch_faidx_path,
+            ch_dict_path,
+            [],
+            []
+        )
+        ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions.first())
+
+        ch_gvcf_tbi_for_import = GATK4_REBLOCKGVCF.out.vcf
+
+        ch_reblocked_by_chromosome = ch_gvcf_tbi_for_import
             .map { meta, gvcf, tbi -> tuple(meta.chromosome ?: 'unknown', gvcf, tbi) }
             .groupTuple(by: 0)
 
