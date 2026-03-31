@@ -41,14 +41,20 @@ workflow VARIANT_FILTERING {
     main:
 
         // Collect version info
-        ch_versions = Channel.empty()
+        ch_versions = channel.empty()
+        ch_intervals_list_val = ch_intervals_list.first()
+        ch_fasta_val = ch_fasta.first()
+        ch_faidx_index_val = ch_faidx_index.first()
+        ch_dict_index_val = ch_dict_index.first()
+
+        // Each tuple in ch_vcf_tbi is processed independently (one run per merged sample VCF/TBI).
     //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_SELECTVARIANTS__SNP(
             ch_vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
+            ch_intervals_list_val,
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val,
             'snp'
         )
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions.first())
@@ -59,13 +65,12 @@ workflow VARIANT_FILTERING {
     //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_SELECTVARIANTS__INDEL(
             ch_vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
+            ch_intervals_list_val,
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val,
             'indel'
         )
-        ch_indel_vcf = GATK4_SELECTVARIANTS__INDEL.out.vcf
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions.first())
 
         list_annotation_types = [
@@ -93,9 +98,9 @@ workflow VARIANT_FILTERING {
         GATK4_VARIANTSTOTABLE(
             ch_snp_vcf_tbi,
             list_annotation_types,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val
         )
 
         ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
@@ -120,8 +125,8 @@ workflow VARIANT_FILTERING {
     //TODO: 20 instances of this process (per-chr multi-sample)
         UTILS_FINALFILTER(
             ch_snp_vcf_tbi,
-            ch_fasta,
-            ch_faidx_index
+            ch_fasta_val,
+            ch_faidx_index_val
         )
 
 

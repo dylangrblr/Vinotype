@@ -11,6 +11,9 @@
 include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__GVCF      } from '../../../modules/local/genozip/compress/main'
 include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__GVCF  } from '../../../modules/local/genozip/decompress/main'
 include { BCFTOOLS_SPLITGVCFBYCHROMOSOME } from '../../../modules/local/bcftools/splitgvcfbychromosome/main'
+include { BCFTOOLS_NORM      } from '../../../modules/nf-core/bcftools/norm/main.nf'
+include { BCFTOOLS_INDEX     } from '../../../modules/nf-core/bcftools/index/main.nf'
+include { GATK4_REBLOCKGVCF  } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/main.nf'
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
@@ -27,6 +30,7 @@ workflow VARIANT_CALLING {
         ch_fasta    // tuple(meta, fasta)
         ch_faidx_index  // tuple(meta, faidx_index)
         ch_dict_index  // tuple(meta, dict_index)
+        ch_intervals_list  // tuple(meta, intervals_list)
         ch_fasta_genozip  // tuple(meta, fasta_genozip)
 
 
