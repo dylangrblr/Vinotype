@@ -43,7 +43,7 @@ workflow VARIANT_CALLING {
         ch_tbi = channel.empty()
 
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
-        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }\
+        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
 
         if(params.skip_gatk4_haplotypecaller_spark) {
 
