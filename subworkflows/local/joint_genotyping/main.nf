@@ -33,9 +33,6 @@ workflow JOINT_GENOTYPING {
         ch_versions = Channel.empty()
 
         ch_intervals_path = ch_intervals_list.map { _meta, intervals -> intervals }
-        ch_fasta_path = ch_fasta.map { _meta, fasta -> fasta }
-        ch_faidx_path = ch_faidx_index.map { _meta, fai -> fai }
-        ch_dict_path = ch_dict_index.map { _meta, dict -> dict }
 
         ch_reblock_input = ch_gvcf_tbi
             .combine(ch_intervals_path)
@@ -43,9 +40,9 @@ workflow JOINT_GENOTYPING {
 
         GATK4_REBLOCKGVCF(
             ch_reblock_input,
-            ch_fasta_path,
-            ch_faidx_path,
-            ch_dict_path,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index,
             [],
             []
         )

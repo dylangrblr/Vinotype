@@ -9,9 +9,9 @@ process GATK4_REBLOCKGVCF {
 
     input:
     tuple val(meta), path(gvcf), path(tbi), path(intervals)
-    path fasta
-    path fai
-    path dict
+    tuple val(meta2), path(fasta)
+    tuple val(meta3), path(fai)
+    tuple val(meta4), path(dict)
     path dbsnp
     path dbsnp_tbi
 
@@ -35,6 +35,8 @@ process GATK4_REBLOCKGVCF {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
+    cp ${dict} ${meta4.id}.dict
+
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         ReblockGVCF \\
         --variant $gvcf \\
