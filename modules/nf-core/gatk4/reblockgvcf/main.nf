@@ -1,5 +1,5 @@
 process GATK4_REBLOCKGVCF {
-    tag "$meta.id"
+    tag "$meta.id:${chromosome}"
     label 'process_low'
 
     conda "${moduleDir}/environment.yml"
@@ -9,6 +9,7 @@ process GATK4_REBLOCKGVCF {
 
     input:
     tuple val(meta), path(gvcf), path(tbi), path(intervals)
+    val(chromosome)
     tuple val(meta2), path(fasta)
     tuple val(meta3), path(fai)
     tuple val(meta4), path(dict)
@@ -24,7 +25,7 @@ process GATK4_REBLOCKGVCF {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}.${chromosome}"
     def dbsnp_command = dbsnp ? "--dbsnp $dbsnp" : ""
     def interval_command = intervals ? "--intervals $intervals" : ""
 
@@ -54,7 +55,7 @@ process GATK4_REBLOCKGVCF {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}.${chromosome}"
 
     """
     touch ${prefix}.rb.g.vcf.gz
