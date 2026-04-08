@@ -17,7 +17,7 @@
 
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
-include { GATK4_VARIANTSTOTABLE } from '../../../modules/nf-core/gatk4/variantstotable/main' 
+include { GATK4_VARIANTSTOTABLE } from '../../../modules/nf-core/gatk4/variantstotable/main'
 
 include { UTILS_FINALFILTER      } from '../../../modules/local/utils/finalfilter/main.nf'
 
@@ -42,13 +42,19 @@ workflow VARIANT_FILTERING {
 
         // Collect version info
         ch_versions = Channel.empty()
+        ch_intervals_list_val = ch_intervals_list
+        ch_fasta_val = ch_fasta
+        ch_faidx_index_val = ch_faidx_index
+        ch_dict_index_val = ch_dict_index
 
+        // Each tuple in ch_vcf_tbi is processed independently (one run per merged sample VCF/TBI).
+    //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_SELECTVARIANTS__SNP(
             ch_vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
+            ch_intervals_list_val,
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val,
             'snp'
         )
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions.first())
@@ -56,20 +62,20 @@ workflow VARIANT_FILTERING {
         ch_snp_vcf = GATK4_SELECTVARIANTS__SNP.out.vcf
         ch_snp_vcf_tbi = GATK4_SELECTVARIANTS__SNP.out.vcf_tbi
 
+    //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_SELECTVARIANTS__INDEL(
             ch_vcf_tbi,
-            ch_intervals_list,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index,
+            ch_intervals_list_val,
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val,
             'indel'
         )
-        ch_indel_vcf = GATK4_SELECTVARIANTS__INDEL.out.vcf
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions.first())
 
         list_annotation_types = [
             "[ %DP]",
-            "[ %GQ]", 
+            "[ %GQ]",
             "%AC",
             "%AD",
             "%AF",
@@ -86,23 +92,27 @@ workflow VARIANT_FILTERING {
             "%DP",
             "%SOR" ]
 
-// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach 
+// NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach
+
+    //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_VARIANTSTOTABLE(
             ch_snp_vcf_tbi,
             list_annotation_types,
-            ch_fasta,
-            ch_faidx_index,
-            ch_dict_index
+            ch_fasta_val,
+            ch_faidx_index_val,
+            ch_dict_index_val
         )
 
         ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
 
         // 2. Index SNP VCF for downstream querying and filtering
+    //TODO: 20 instances of this process (per-chr multi-sample)
         BCFTOOLS_INDEX(ch_snp_vcf)
         ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
         // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
 
         // 3. Extract annotation fields and plot distributions
+    //TODO: 20 instances of this process (per-chr multi-sample)
         BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
 
         ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions.first())
@@ -112,10 +122,11 @@ workflow VARIANT_FILTERING {
         // R_PLOT_DENSITY(ch_annotation_txt.map { meta, txt, annotation -> tuple(meta, txt, annotation) })
 */
 
+    //TODO: 20 instances of this process (per-chr multi-sample)
         UTILS_FINALFILTER(
             ch_snp_vcf_tbi,
-            ch_fasta,
-            ch_faidx_index
+            ch_fasta_val,
+            ch_faidx_index_val
         )
 
 

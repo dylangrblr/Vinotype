@@ -10,6 +10,10 @@
 
 include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__GVCF      } from '../../../modules/local/genozip/compress/main'
 include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__GVCF  } from '../../../modules/local/genozip/decompress/main'
+include { BCFTOOLS_SPLITGVCFBYCHROMOSOME } from '../../../modules/local/bcftools/splitgvcfbychromosome/main'
+include { BCFTOOLS_NORM      } from '../../../modules/nf-core/bcftools/norm/main.nf'
+include { BCFTOOLS_INDEX     } from '../../../modules/nf-core/bcftools/index/main.nf'
+include { GATK4_REBLOCKGVCF  } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { SAMTOOLS_INDEX      } from '../../../modules/nf-core/samtools/index/main.nf'
 include { SAMTOOLS_IDXSTATS  } from '../../../modules/nf-core/samtools/idxstats/main.nf'
 include { SAMTOOLS_VIEW      } from '../../../modules/nf-core/samtools/view/main.nf'
@@ -26,6 +30,7 @@ workflow VARIANT_CALLING {
         ch_fasta    // tuple(meta, fasta)
         ch_faidx_index  // tuple(meta, faidx_index)
         ch_dict_index  // tuple(meta, dict_index)
+        _ch_intervals_list  // tuple(meta, intervals_list)
         ch_fasta_genozip  // tuple(meta, fasta_genozip)
 
 
@@ -38,7 +43,7 @@ workflow VARIANT_CALLING {
         ch_tbi = Channel.empty()
 
         // Assume ch_bam_bai is a channel emitting (meta, bam, bai)
-        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }\
+        ch_bam_bai_extended = ch_bam_bai.map { meta, bam, bai -> tuple(meta, bam, bai, [], []) }
 
         if(params.skip_gatk4_haplotypecaller_spark) {
 
@@ -110,6 +115,49 @@ workflow VARIANT_CALLING {
 
             // ch_bam_bai = SAMTOOLS_VIEW.out.bam_bai.mix(GENOZIP_DECOMPRESS__GVCF.out.bam_bai)
         }
+
+        // Create one task per (sample gVCF, chromosome) and split with bcftools view.
+        ch_chromosomes = ch_faidx_index
+            .map { _meta, fai ->
+                file(fai).text.readLines()
+                    .findAll { line -> line?.trim() }
+                    .collect { line -> line.split('\t')[0] }
+            }
+            .flatten()
+            .unique()
+
+        ch_gvcf_tbi_per_chromosome = ch_gvcf_tbi
+            .combine(ch_chromosomes)
+            .map { meta, gvcf, tbi, chromosome ->
+                tuple(meta + [chromosome: chromosome], gvcf, tbi, chromosome)
+            }
+
+        BCFTOOLS_SPLITGVCFBYCHROMOSOME(ch_gvcf_tbi_per_chromosome)
+        ch_versions = ch_versions.mix(BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.versions)
+
+        ch_gvcf_tbi = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.vcf_tbi
+        ch_gvcf = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.vcf
+        ch_tbi = BCFTOOLS_SPLITGVCFBYCHROMOSOME.out.tbi
+
+
+    //TODO: SPLIT THE GVCF per chromosome, per sample using => 1 sample => 20 chromosomes
+    // bcftools view -r chr1 sample1.g.vcf.gz -O z -o sample1.chr1.g.vcf.gz
+    // bcftools index sample1.chr1.g.vcf.gz
+
+
+    // We also need to do reblock + normalization, to make sure there are no
+    // overlapping regions.
+
+    //sample1.chr1.g.vcf.gz, index.sample1...
+    //sample2.chr1.g.vcf.gz
+    //sample3.chr1.g.vcf.gz
+    //sample4.chr1.g.vcf.gz
+
+
+
+    // bcftools view -t chr1 sample1.g.vcf.gz -O z -o sample1.chr1.g.vcf.gz
+
+
 
 
 

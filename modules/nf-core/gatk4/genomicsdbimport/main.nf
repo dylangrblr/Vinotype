@@ -1,5 +1,5 @@
 process GATK4_GENOMICSDBIMPORT {
-    tag "$meta.id"
+    tag "$chromosome_name"
     label 'process_long'
 
     conda "${moduleDir}/environment.yml"
@@ -14,7 +14,7 @@ process GATK4_GENOMICSDBIMPORT {
         tuple val(meta1), path(reference_fasta)
         tuple val(meta2), path(reference_fasta_index)
         tuple val(meta3), path(reference_dict)
-        tuple val(meta4), path(interval_file)
+        val(chromosome_name)
 
 
     output:
@@ -30,9 +30,9 @@ process GATK4_GENOMICSDBIMPORT {
     prefix   = task.ext.prefix ?: "${meta.id}"
 
     // Determine input command: sample map or list of --variant
-    input_command = gvcfs.collect { "--variant $it" }.join(' ')
+    input_command = gvcfs.collect { gvcf -> "--variant ${gvcf}" }.join(' ')
     genomicsdb_command = "--genomicsdb-workspace-path ${prefix}"
-    interval_command = "--intervals ${interval_file}"
+    interval_command = chromosome_name ? "--intervals ${chromosome_name}" : ""
     updated_db = "${meta.id}"
 
     // // Interval list mode
