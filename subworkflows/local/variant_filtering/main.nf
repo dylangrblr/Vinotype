@@ -41,7 +41,7 @@ workflow VARIANT_FILTERING {
     main:
 
         // Collect version info
-        ch_versions = channel.empty()
+        ch_versions = Channel.empty()
         ch_intervals_list_val = ch_intervals_list
         ch_fasta_val = ch_fasta
         ch_faidx_index_val = ch_faidx_index
