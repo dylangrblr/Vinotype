@@ -56,6 +56,8 @@ nextflow run dylangrblr/vinotype \
    --outdir <OUTDIR>
 ```
 
+If your gVCFs are already reblocked and ready for joint genotyping, add `--reblocked_gvcf` to skip the reblocking step in `JOINT_GENOTYPING`.
+
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
 

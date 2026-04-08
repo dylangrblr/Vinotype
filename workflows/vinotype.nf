@@ -97,8 +97,10 @@ workflow VINOTYPE {
             VARIANT_CALLING.out.gvcf_tbi_files,
             ch_intervals_list,
             ch_fasta,
+            REFERENCE_ALIGNMENT.out.fasta_genozip,
             REFERENCE_ALIGNMENT.out.faidx_index,
             REFERENCE_ALIGNMENT.out.dict_index,
+            ch_samplesheet_gvcf,
             VARIANT_CALLING.out.gvcf_files,
             VARIANT_CALLING.out.tbi_files,
         )
