@@ -1,5 +1,5 @@
 process GENOZIP_COMPRESS {
-    tag "$meta.id"
+    tag task.ext.prefix ?: "${meta.id}${meta.chromosome ? '.' + meta.chromosome : ''}"
     label 'process_medium'
 
     //FIXME: Use the latest containers for genozip
