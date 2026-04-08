@@ -35,7 +35,7 @@ workflow JOINT_GENOTYPING {
 
     main:
 
-        ch_versions = channel.empty()
+        ch_versions = Channel.empty()
 
         ch_intervals_path = ch_intervals_list.map { _meta, intervals -> intervals }
 
