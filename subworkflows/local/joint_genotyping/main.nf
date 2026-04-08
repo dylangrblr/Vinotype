@@ -13,8 +13,6 @@
 include { BCFTOOLS_INDEX         } from '../../../modules/nf-core/bcftools/index/main.nf'
 include { BCFTOOLS_CONCAT        } from '../../../modules/nf-core/bcftools/concat/main.nf'
 include { BCFTOOLS_NORM          } from '../../../modules/nf-core/bcftools/norm/main.nf'
-include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__REBLOCKED_GVCF      } from '../../../modules/local/genozip/compress/main'
-include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__REBLOCKED_GVCF  } from '../../../modules/local/genozip/decompress/main'
 include { GATK4_REBLOCKGVCF      } from '../../../modules/nf-core/gatk4/reblockgvcf/main.nf'
 include { GATK4_INDEXFEATUREFILE } from '../../../modules/nf-core/gatk4/indexfeaturefile/main.nf'
 include { GATK4_GENOMICSDBIMPORT } from '../../../modules/nf-core/gatk4/genomicsdbimport/main.nf'
@@ -25,10 +23,8 @@ workflow JOINT_GENOTYPING {
         ch_gvcf_tbi
         ch_intervals_list   // path to intervals.list (optional)
         ch_fasta
-        ch_fasta_genozip
         ch_faidx_index
         ch_dict_index
-        ch_samplesheet_gvcf
         _ch_gvcf
         _ch_tbi
         //ch_gvcf_bins   // [ sample_id, path(gvcf) ] for all bins
@@ -39,52 +35,25 @@ workflow JOINT_GENOTYPING {
 
         ch_intervals_path = ch_intervals_list.map { _meta, intervals -> intervals }
 
-        if(params.reblocked_gvcf) {
-            if(params.use_genozip && params.genozip_license_file) {
-                GENOZIP_DECOMPRESS__REBLOCKED_GVCF(
-                    ch_samplesheet_gvcf,
-                    params.genozip_license_file,
-                    ch_fasta_genozip
-                )
-                ch_versions = ch_versions.mix(GENOZIP_DECOMPRESS__REBLOCKED_GVCF.out.versions.first())
+        ch_reblock_input = ch_gvcf_tbi
+            .combine(ch_intervals_path)
+            .map { meta, gvcf, tbi, intervals -> tuple(meta, gvcf, tbi, intervals) }
 
-                GATK4_INDEXFEATUREFILE( GENOZIP_DECOMPRESS__REBLOCKED_GVCF.out.gvcf )
-                ch_versions = ch_versions.mix(GATK4_INDEXFEATUREFILE.out.versions.first())
+        ch_reblock_chromosome = ch_gvcf_tbi
+            .map { meta, _gvcf_unused, _tbi_unused -> meta.chromosome ?: 'unknown' }
 
-                ch_gvcf_tbi_for_import = GENOZIP_DECOMPRESS__REBLOCKED_GVCF.out.gvcf.join(GATK4_INDEXFEATUREFILE.out.index)
-            } else {
-                ch_gvcf_tbi_for_import = ch_gvcf_tbi
-            }
-        } else {
-            ch_reblock_input = ch_gvcf_tbi
-                .combine(ch_intervals_path)
-                .map { meta, gvcf, tbi, intervals -> tuple(meta, gvcf, tbi, intervals) }
+        GATK4_REBLOCKGVCF(
+            ch_reblock_input,
+            ch_reblock_chromosome,
+            ch_fasta,
+            ch_faidx_index,
+            ch_dict_index,
+            [],
+            []
+        )
+        ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions.first())
 
-            ch_reblock_chromosome = ch_gvcf_tbi
-                .map { meta, _gvcf_unused, _tbi_unused -> meta.chromosome ?: 'unknown' }
-
-            GATK4_REBLOCKGVCF(
-                ch_reblock_input,
-                ch_reblock_chromosome,
-                ch_fasta,
-                ch_faidx_index,
-                ch_dict_index,
-                [],
-                []
-            )
-            ch_versions = ch_versions.mix(GATK4_REBLOCKGVCF.out.versions.first())
-
-            if(params.use_genozip && params.genozip_license_file) {
-                GENOZIP_COMPRESS__REBLOCKED_GVCF(
-                    GATK4_REBLOCKGVCF.out.vcf,
-                    params.genozip_license_file,
-                    ch_fasta_genozip
-                )
-                ch_versions = ch_versions.mix(GENOZIP_COMPRESS__REBLOCKED_GVCF.out.versions.first())
-            }
-
-            ch_gvcf_tbi_for_import = GATK4_REBLOCKGVCF.out.vcf
-        }
+        ch_gvcf_tbi_for_import = GATK4_REBLOCKGVCF.out.vcf
 
         ch_reblocked_by_chromosome = ch_gvcf_tbi_for_import
             .map { meta, gvcf, tbi -> tuple(meta.chromosome ?: 'unknown', gvcf, tbi) }

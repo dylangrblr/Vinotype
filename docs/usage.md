@@ -63,8 +63,6 @@ The typical command for running the pipeline is as follows:
 nextflow run dylangrblr/vinotype --input ./samplesheet.csv --outdir ./results  -profile docker
 ```
 
-If the gVCFs in your samplesheet are already reblocked, pass `--reblocked_gvcf` to bypass the `GATK4_REBLOCKGVCF` step during joint genotyping.
-
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:

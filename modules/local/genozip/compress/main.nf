@@ -1,5 +1,5 @@
 process GENOZIP_COMPRESS {
-    tag "${meta.id}${meta.chromosome ? '.' + meta.chromosome : ''}"
+    tag "${meta.id}"
     label 'process_medium'
 
     //FIXME: Use the latest containers for genozip
@@ -34,7 +34,7 @@ process GENOZIP_COMPRESS {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}${meta.chromosome ? '.' + meta.chromosome : ''}"
+    def prefix = task.ext.prefix ?: "${meta.id}"
 
 
     """
