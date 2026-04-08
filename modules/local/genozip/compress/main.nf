@@ -36,7 +36,7 @@ process GENOZIP_COMPRESS {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}${meta.chromosome ? '.' + meta.chromosome : ''}"
 
 
     """
@@ -55,8 +55,7 @@ process GENOZIP_COMPRESS {
     """
 
     stub:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}${meta.chromosome ? '.' + meta.chromosome : ''}"
 
     """
     touch ${prefix}.genozip
