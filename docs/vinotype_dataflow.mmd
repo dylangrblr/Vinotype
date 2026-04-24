@@ -1,0 +1,79 @@
+flowchart TD
+  A[Input CSV samplesheet] --> B[Pipeline initialisation]
+  F[Reference FASTA] --> B
+  I[Intervals list] --> B
+
+  B --> C[Classify inputs by type]
+  C --> C1[FASTQ]
+  C --> C2[BAM genozip]
+  C --> C3[gVCF genozip]
+
+  subgraph QC[Quality control]
+    C1 --> Q1[FastQC pre-trim]
+    C1 --> Q2[fastp trim and filter]
+    Q2 --> Q3[FastQC artifacts]
+    Q2 --> Q4[Trimmed reads]
+  end
+
+  subgraph RA[Reference alignment and indexing]
+    F --> R0[Build indexes: BWA, faidx, dict, optional fasta genozip]
+    Q4 --> R1[BWA-MEM2 align]
+    R1 --> R2[SortSam]
+    R2 --> R3[Add or replace read groups]
+    R3 --> R4[Mark duplicates]
+    R4 --> R5[Flagstat pre-filter]
+    R4 --> R6[SAMtools view filter]
+    R6 --> R7[Flagstat post-filter]
+    R6 --> R8[BAM and BAI tuples]
+    C2 --> R9[Optional BAM decompress]
+    R9 --> R10[Index BAM]
+    R10 --> R8
+  end
+
+  subgraph VC[Variant calling]
+    R8 --> V1[HaplotypeCaller Spark or classic]
+    R0 --> V1
+    C3 --> V2[Optional gVCF decompress]
+    V2 --> V3[IndexFeatureFile]
+    V1 --> V4[gVCF and TBI]
+    V3 --> V4
+    V4 --> V5[Read chromosomes from faidx]
+    V5 --> V6[Split gVCF by chromosome]
+  end
+
+  V6 --> S0{skip merged analysis?}
+
+  subgraph JG[Joint genotyping]
+    S0 -->|No| J1[ReblockGVCF]
+    J1 --> J2[Group by chromosome]
+    J2 --> J3[GenomicsDBImport]
+    J3 --> J4[GenotypeGVCFs]
+  end
+
+  subgraph VF[Variant filtering]
+    J4 --> F1[Select SNPs]
+    J4 --> F2[Select INDELs]
+    F1 --> F3[VariantsToTable metrics]
+    F1 --> F4[bcftools query metrics]
+    F1 --> F5[Final hard filter]
+  end
+
+  subgraph VEP[Variant effect prediction]
+    F5 --> E1[Merge chromosome VCFs]
+    E1 --> E2[SnpEff annotation]
+    E2 --> E3[SnpSift filtering]
+  end
+
+  subgraph REP[Reporting]
+    Q1 --> M[Aggregate QC and versions]
+    Q3 --> M
+    R7 --> M
+    V1 --> M
+    J4 --> M
+    F5 --> M
+    E3 --> M
+    M --> MQ[MultiQC report]
+  end
+
+  S0 -->|Yes| M
+  MQ --> Z[Pipeline completion]
