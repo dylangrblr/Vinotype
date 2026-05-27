@@ -82,14 +82,14 @@ graph LR
     %%metro entry: left | fastq, genozip, gvcf
     %%metro exit: bottom | fastq, genozip, gvcf
     HC[HaplotypeCaller]
-    GZD[Genozip decompress]
+    GZD[Genozip]
     SPLIT[bcftools view]
     HC -->|fastq| SPLIT
     HC -->|genozip| SPLIT
     GZD -->|gvcf| SPLIT
   end
 
-  subgraph JOINT_LINE[Joint genotyping per chr]
+  subgraph JOINT_LINE[Joint genotyping (chr)]
     %%metro direction: RL
     %%metro entry: top | fastq, genozip, gvcf
     %%metro exit: left | fastq, genozip, gvcf
@@ -104,7 +104,7 @@ graph LR
     GDB -->|gvcf| GT
   end
 
-  subgraph FILTER_LINE[Variant filtering per chr]
+  subgraph FILTER_LINE[Variant filtering (chr)]
     %%metro direction: RL
     %%metro entry: right | fastq, genozip, gvcf
     SELECTVARIANTS[SelectVariants]
@@ -118,7 +118,7 @@ graph LR
     TABLE -->|gvcf| FINAL
   end
 
-  subgraph ANNO_LINE[Variant effect prediction per chr]
+  subgraph ANNO_LINE[Variant effect prediction]]
     %%metro direction: RL
     %%metro entry: right | fastq, genozip, gvcf
     MERGE[MergeVcfs]
