@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Venn diagram showing SNP overlap between three datasets:
   - SNP-array benchmark  (10,228 SNPs)
@@ -21,8 +22,7 @@ Assumptions:
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import Ellipse
+from matplotlib.patches import Ellipse, Patch
 from matplotlib.colors import to_rgba
 import numpy as np
 
@@ -99,12 +99,12 @@ for x, y, text, fs, ha in annotations:
 # ── legend labels ─────────────────────────────────────────────────────────────
 
 legend_entries = [
-    mpatches.Patch(facecolor=to_rgba("#F4C97A", 0.55), edgecolor="#F4C97A",
-                   linewidth=1.2, label=f"SNP-Array Benchmark\n({fmt(array_total)} SNPs)"),
-    mpatches.Patch(facecolor=to_rgba("#89B4D9", 0.55), edgecolor="#89B4D9",
-                   linewidth=1.2, label=f"Vinotype Raw\n({fmt(raw_total)} SNPs)"),
-    mpatches.Patch(facecolor=to_rgba("#85C9A0", 0.55), edgecolor="#85C9A0",
-                   linewidth=1.2, label=f"Vinotype Filtered\n({fmt(filtered_total)} SNPs)"),
+    Patch(facecolor=to_rgba("#F4C97A", 0.55), edgecolor="#F4C97A",
+          linewidth=1.2, label=f"SNP-Array Benchmark\n({fmt(array_total)} SNPs)"),
+    Patch(facecolor=to_rgba("#89B4D9", 0.55), edgecolor="#89B4D9",
+          linewidth=1.2, label=f"Vinotype Raw\n({fmt(raw_total)} SNPs)"),
+    Patch(facecolor=to_rgba("#85C9A0", 0.55), edgecolor="#85C9A0",
+          linewidth=1.2, label=f"Vinotype Filtered\n({fmt(filtered_total)} SNPs)"),
 ]
 
 ax.legend(handles=legend_entries, loc="lower center",
