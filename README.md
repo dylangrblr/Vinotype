@@ -14,6 +14,8 @@
 
 **dylangrblr/vinotype** is a streamlined bioinformatics pipeline for large-scale identification of sequence variants from Illumina paired-end short-read data targeting grapevine (_Vitis_ spp.). It accepts raw FASTQ files (or pre-processed Genozip-compressed BAM/gVCF files) and carries samples through read quality control, reference alignment, per-sample variant calling, joint genotyping, hard-filter variant refinement, and functional effect prediction — producing a fully annotated, filtered multi-sample VCF together with a comprehensive MultiQC report.
 
+![Vinotype Dataflow](docs/vinotype_dataflow.png)
+
 The pipeline implements the following steps:
 
 1. **Quality Control** — Pre-trim read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)), adapter trimming and quality filtering ([`fastp`](https://github.com/OpenGene/fastp)), post-trim read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
