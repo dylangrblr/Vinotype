@@ -9,13 +9,16 @@
 %%metro file: INPUT | csv
 %%metro files: FASTQ | fq.gz | Raw reads
 %%metro files: FILTERED_READS | fq.gz | Filtered reads
-%%metro files: GENOZIP_BAM | bam | Genozip compressed BAM
-%%metro files: GZ_INPUT | bam | Genozip compressed BAM
-%%metro files: GVCF_INPUT | vcf.gz | Genozip compressed GVCF
+%%metro files: GENOZIP_BAM | bam | Genozip-compressed BAM
+%%metro files: GZ_INPUT | bam | Genozip-compressed BAM
+%%metro files: GVCF_INPUT | vcf.gz | Genozip-compressed GVCF
 %%metro file: QC_REPORT | HTML | Report
 %%metro file: REF | FASTA | Reference genome
 %%metro file: M | HTML | Report
-%%metro off_track: M
+%%metro files: SNP_VCF | vcf.gz | SNP variants
+%%metro files: INDEL_VCF | vcf.gz | InDel variants
+%%metro off_track: SNP_VCF
+%%metro off_track: INDEL_VCF
 %%metro off_track: GENOZIP_BAM
 %%metro grid: INPUT_LINE | 1,1
 %%metro grid: QC_LINE | 2,1
@@ -27,7 +30,7 @@
 
 graph LR
 
-  subgraph INPUT_LINE[Input Routing]
+  subgraph INPUT_LINE[Input routing]
     INPUT[ ]
     PARSE[Parse samplesheet]
     FASTQ[ ]
@@ -110,12 +113,20 @@ graph LR
     SELECTVARIANTS[SelectVariants]
     TABLE[VariantsToTable]
     FINAL[bcftools filter]
+    BCFVIEW[bcftools view]
+    VCFTOOLS[vcftools]
     SELECTVARIANTS -->|fastq| TABLE
     SELECTVARIANTS -->|genozip| TABLE
     SELECTVARIANTS -->|gvcf| TABLE
     TABLE -->|fastq| FINAL
     TABLE -->|genozip| FINAL
     TABLE -->|gvcf| FINAL
+    FINAL -->|fastq| BCFVIEW
+    FINAL -->|genozip| BCFVIEW
+    FINAL -->|gvcf| BCFVIEW
+    BCFVIEW -->|fastq| VCFTOOLS
+    BCFVIEW -->|genozip| VCFTOOLS
+    BCFVIEW -->|gvcf| VCFTOOLS
   end
 
   subgraph ANNO_LINE[Variant effect prediction]
@@ -126,6 +137,8 @@ graph LR
     SNPSIFT[SnpSift filter]
     MQC[MultiQC]
     M[ ]
+    SNP_VCF[ ]
+    INDEL_VCF[ ]
     MERGE -->|fastq| SNPEFF
     MERGE -->|genozip| SNPEFF
     MERGE -->|gvcf| SNPEFF
@@ -135,6 +148,12 @@ graph LR
     SNPSIFT -->|fastq| MQC
     SNPSIFT -->|genozip| MQC
     SNPSIFT -->|gvcf| MQC
+    SNPSIFT -->|fastq| SNP_VCF
+    SNPSIFT -->|genozip| SNP_VCF
+    SNPSIFT -->|gvcf| SNP_VCF
+    SNPSIFT -->|fastq| INDEL_VCF
+    SNPSIFT -->|genozip| INDEL_VCF
+    SNPSIFT -->|gvcf| INDEL_VCF
     MQC -->|fastq| M
     MQC -->|genozip| M
     MQC -->|gvcf| M
@@ -153,6 +172,6 @@ graph LR
   GT -->|fastq| SELECTVARIANTS
   GT -->|genozip| SELECTVARIANTS
   GT -->|gvcf| SELECTVARIANTS
-  FINAL -->|fastq| MERGE
-  FINAL -->|genozip| MERGE
-  FINAL -->|gvcf| MERGE
+  VCFTOOLS -->|fastq| MERGE
+  VCFTOOLS -->|genozip| MERGE
+  VCFTOOLS -->|gvcf| MERGE
