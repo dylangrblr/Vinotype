@@ -8,6 +8,20 @@ report_section_order:
     order: -1001
   "dylangrblr-vinotype-summary":
     order: -1002
+  fastqc:
+    order: 100
+  fastp:
+    order: 90
+  picard:
+    order: 80
+  samtools:
+    order: 70
+  bcftools:
+    order: 60
+  snpeff:
+    order: 50
+  vcftools:
+    order: 40
 
 export_plots: true
 
@@ -22,3 +36,5 @@ top_modules:
   - bwa
   - gatk
   - bcftools
+  - snpeff
+  - vcftools

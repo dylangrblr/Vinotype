@@ -42,6 +42,7 @@ workflow VARIANT_EFFECT_PREDICTION {
     ch_versions = ch_versions.mix(SNPSIFT_FILTER.out.versions.first())
 
     emit:
-    vcf = SNPSIFT_FILTER.out.vcf                  // channel: [ val(meta), vcf ]
-    versions = ch_versions                     // channel: [ versions.yml ]
+    vcf          = SNPSIFT_FILTER.out.vcf          // channel: [ val(meta), vcf ]
+    snpeff_report = SNPEFF_SNPEFF.out.report       // channel: [ val(meta), csv ]
+    versions     = ch_versions                     // channel: [ versions.yml ]
 }
