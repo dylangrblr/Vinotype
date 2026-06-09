@@ -14,6 +14,7 @@
 
 
 include { BWAMEM2_MEM                         } from '../../../modules/nf-core/bwamem2/mem/main'
+include { SAMTOOLS_STATS                      } from '../../../modules/nf-core/samtools/stats/main'
 include { GENOZIP_COMPRESS as GENOZIP_COMPRESS__BAM      } from '../../../modules/local/genozip/compress/main'
 include { GENOZIP_DECOMPRESS as GENOZIP_DECOMPRESS__BAM  } from '../../../modules/local/genozip/decompress/main'
 include { PICARD_SORTSAM                      } from '../../../modules/nf-core/picard/sortsam/main'
@@ -94,7 +95,12 @@ workflow REFERENCE_ALIGNMENT {
         )
         ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT_POST.out.versions.first())
 
+        ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_FLAGSTAT_PRE.out.flagstat.collect{it[1]}.ifEmpty([]))
         ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_FLAGSTAT_POST.out.flagstat.collect{it[1]}.ifEmpty([]))
+
+        SAMTOOLS_STATS(SAMTOOLS_VIEW.out.bam_bai, ch_fasta)
+        ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
+        ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect{it[1]}.ifEmpty([]))
 
         // // Combine flagstat reports
         // ch_flagstat_combined = SAMTOOLS_FLAGSTAT_PRE.out.flagstat
@@ -143,9 +149,9 @@ workflow REFERENCE_ALIGNMENT {
 
    emit:
         // bam_files = SAMTOOLS_VIEW.out.bam           // tuple(meta, bam)
-        // metrics = PICARD_MARKDUPLICATES.out.metrics // tuple(meta, metrics)
         //flagstat_reports = ch_flagstat_combined     // tuple(meta, [pre_flagstat, post_flagstat])
         bam_bai =  ch_bam_bai
+        markdup_metrics = PICARD_MARKDUPLICATES.out.metrics
         bwa_index =  INDEXES.out.bwa_index
         dict_index =  INDEXES.out.dict_index
         faidx_index = INDEXES.out.faidx_index

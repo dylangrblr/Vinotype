@@ -43,9 +43,9 @@ workflow VINOTYPE {
     QUALITY_CONTROL (
         ch_samplesheet_fastq
     )
-    // ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]})
-    // ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]})
-    // ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions)
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastqc_pre_reports_zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files  = ch_multiqc_files.mix(QUALITY_CONTROL.out.fastp_json.collect{it[1]}.ifEmpty([]))
+    ch_versions = ch_versions.mix(QUALITY_CONTROL.out.versions)
 
     //
     // SUBWORKFLOW: REFERENCE_ALIGNMENT
@@ -62,9 +62,9 @@ workflow VINOTYPE {
         ch_fasta,
         QUALITY_CONTROL.out.fastp_reads
     )
-    //ch_multiqc_files = ch_multiqc_files.mix()
-    // ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
-    // ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.multiqc_files.collect{it[1]}.ifEmpty([]))
+    ch_versions = ch_versions.mix(REFERENCE_ALIGNMENT.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.multiqc_files)
+    ch_multiqc_files = ch_multiqc_files.mix(REFERENCE_ALIGNMENT.out.markdup_metrics.collect{it[1]}.ifEmpty([]))
 
     //
     // SUBWORKFLOW: VARIANT_CALLING
@@ -130,6 +130,8 @@ workflow VINOTYPE {
             params.snpeff_db,
             params.snpeff_config
         )
+        ch_multiqc_files = ch_multiqc_files.mix(
+            VARIANT_EFFECT_PREDICTION.out.snpeff_report.collect{it[1]}.ifEmpty([]))
 
     }
 
