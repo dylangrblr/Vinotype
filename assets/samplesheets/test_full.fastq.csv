@@ -1,3 +1,4 @@
 sample,fastq_1,fastq_2,bam,gvcf
-full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong,https://zenodo.org/records/17062459/files/full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong_r2.fq.gz?download=1,,
-full_test_Vv_Fre1_CINSAUT_dong,https://zenodo.org/records/17062459/files/full_test_Vv_Fre1_CINSAUT_dong_f1.fq.gz?download=1,https://zenodo.org/records/17062459/files/full_test_Vv_Fre1_CINSAUT_dong_r2.fq.gz?download=1,,
+full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong,https://zenodo.org/records/17062459/files/full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong_f1.fq.gz,https://zenodo.org/records/17062459/files/full_test_Vv_Fre189_CRIOLLA_GRANDE_SANJUANINA_dong_r2.fq.gz,,
+full_test_Vv_Fre1_CINSAUT_dong,https://zenodo.org/records/17062459/files/full_test_Vv_Fre1_CINSAUT_dong_f1.fq.gz,https://zenodo.org/records/17062459/files/full_test_Vv_Fre1_CINSAUT_dong_r2.fq.gz,,
+full_test_Vv_ITA131_CROATINA_dong,https://zenodo.org/records/17062459/files/full_test_Vv_ITA131_CROATINA_dong_f1.fq.gz,https://zenodo.org/records/17062459/files/full_test_Vv_ITA131_CROATINA_dong_r2.fq.gz,,
