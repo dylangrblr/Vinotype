@@ -23,7 +23,7 @@ process BWAMEM2_INDEX {
     def prefix = task.ext.prefix ?: "${fasta}"
     def args = task.ext.args ?: ''
     """
-    mkdir bwamem2
+    mkdir -p bwamem2
     bwa-mem2 \\
         index \\
         $args \\
@@ -39,7 +39,7 @@ process BWAMEM2_INDEX {
     def prefix = task.ext.prefix ?: "${fasta}"
 
     """
-    mkdir bwamem2
+    mkdir -p bwamem2
     touch bwamem2/${prefix}.0123
     touch bwamem2/${prefix}.ann
     touch bwamem2/${prefix}.pac

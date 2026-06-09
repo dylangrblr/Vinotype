@@ -7,3 +7,8 @@ testing/
 testing*
 *.pyc
 null/
+
+# abc-cluster integration (kept locally, not tracked)
+conf/abc_cluster.config
+bin/run-abc-cluster.sh
+docs/abc-cluster.md
