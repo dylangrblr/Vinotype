@@ -82,12 +82,12 @@ for key, p in circles.items():
 
 annotations = [
     # (x,    y,    text,                                          fontsize, ha)
-    (5.5,  6.55,  f"Array only\n{fmt(array_only)}",               9,  "center"),
-    (2.2,  2.1,   f"Raw only\n{fmt(raw_only)}",                   9,  "center"),
-    (9.1,  2.1,   f"Filtered only\n0",                            9,  "center"),
-    (4.0,  5.05,  f"Array ∩ Raw\n(not Filtered)\n{fmt(array_raw_only)}", 8.5, "center"),
-    (5.5,  4.35,  f"Array ∩ Raw\n∩ Filtered\n{fmt(array_raw_filt)}", 8.5, "center"),
-    (6.5,  2.25,  f"Raw ∩ Filtered\n(not Array)\n{fmt(raw_filt_only)}", 8.5, "center"),
+    (5.5,  6.55,  f"Array only\n{fmt(array_only)}",               16,  "center"),
+    (2.2,  2.1,   f"Raw only\n{fmt(raw_only)}",                   16,  "center"),
+    (9.1,  2.1,   f"Filtered only\n0",                            16,  "center"),
+    (4.0,  5.05,  f"Array ∩ Raw\n(not Filtered)\n{fmt(array_raw_only)}", 16, "center"),
+    (5.5,  4.35,  f"Array ∩ Raw\n∩ Filtered\n{fmt(array_raw_filt)}", 16, "center"),
+    (6.5,  2.25,  f"Raw ∩ Filtered\n(not Array)\n{fmt(raw_filt_only)}", 16, "center"),
     # Array ∩ Filtered only = 0, omit for clarity
 ]
 
@@ -109,7 +109,7 @@ legend_entries = [
 
 ax.legend(handles=legend_entries, loc="lower center",
           bbox_to_anchor=(0.5, -0.02), ncol=3,
-          fontsize=9, framealpha=0.85, edgecolor="#cccccc",
+          fontsize=14, framealpha=0.85, edgecolor="#cccccc",
           handlelength=1.8, handleheight=1.4)
 
 # ── title ─────────────────────────────────────────────────────────────────────

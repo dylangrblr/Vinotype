@@ -120,9 +120,9 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
                    s=150, alpha=0.8, color='#DE8F05', label='High-Discordance', 
                    edgecolors='black', linewidth=2)
     
-    axes[0].set_xlabel('Mean Depth (DP)', fontsize=11, fontweight='bold')
-    axes[0].set_ylabel('Non-Reference Discordance (%)', fontsize=11, fontweight='bold')
-    axes[0].legend(fontsize=10)
+    axes[0].set_xlabel('Mean Depth (DP)', fontsize=14, fontweight='bold')
+    axes[0].set_ylabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
+    axes[0].legend(fontsize=14)
     axes[0].grid(True, alpha=0.3)
     
     # GQ vs Discordance
@@ -132,13 +132,13 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
                    s=150, alpha=0.8, color='#DE8F05', label='High-Discordance', 
                    edgecolors='black', linewidth=2)
     
-    axes[1].set_xlabel('Mean Genotype Quality (GQ)', fontsize=11, fontweight='bold')
-    axes[1].set_ylabel('Non-Reference Discordance (%)', fontsize=11, fontweight='bold')
-    axes[1].legend(fontsize=10)
+    axes[1].set_xlabel('Mean Genotype Quality (GQ)', fontsize=14, fontweight='bold')
+    axes[1].set_ylabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
+    axes[1].legend(fontsize=14)
     axes[1].grid(True, alpha=0.3)
     
     plt.suptitle('Relationship Between Quality Metrics and Discordance', 
-                fontsize=13, fontweight='bold', y=1.00)
+                fontsize=14, fontweight='bold', y=1.00)
     plt.tight_layout()
     plt.savefig(f'{output_dir}/discordance_vs_quality.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -165,22 +165,22 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
                 label=f'Threshold ({threshold:.1f}%)')
     ax1.set_xticks([0, len(df_sorted) - 1])
     ax1.set_xticklabels(['Rank 1\n(Lowest)', f'Rank {len(df_sorted)}\n(Highest)'])
-    ax1.set_ylabel('Non-Reference Discordance (%)', fontsize=12, fontweight='bold')
-    ax1.set_xlabel(f'All samples (n={len(df_sorted)})', fontsize=12, fontweight='bold')
-    ax1.set_title('Overview', fontsize=13, fontweight='bold')
-    ax1.legend(fontsize=10, loc='upper left')
+    ax1.set_ylabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
+    ax1.set_xlabel(f'All samples (n={len(df_sorted)})', fontsize=14, fontweight='bold')
+    ax1.set_title('Overview', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=14, loc='upper left')
     ax1.spines[['top', 'right']].set_visible(False)
     ax1.grid(True, alpha=0.3, axis='y')
     ax1.set_axisbelow(True)
     
     # Add mean concordance boxes on the left panel
-    ax1.text(0.02, 0.50, f'Mean Discordance (All):\n{mean_all:.2f}%\nSD: {std_all:.2f}%', 
-            transform=ax1.transAxes, fontsize=10, verticalalignment='top',
+    ax1.text(0.02, 0.75, f'Mean Discordance (All):\n{mean_all:.2f}%\nSD: {std_all:.2f}%', 
+            transform=ax1.transAxes, fontsize=14, verticalalignment='top',
             horizontalalignment='left',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     
-    ax1.text(0.02, 0.35, f'Mean Discordance (Normal):\n{mean_normal:.2f}%\nSD: {std_normal:.2f}%', 
-            transform=ax1.transAxes, fontsize=10, verticalalignment='top',
+    ax1.text(0.02, 0.25, f'Mean Discordance (Normal):\n{mean_normal:.2f}%\nSD: {std_normal:.2f}%', 
+            transform=ax1.transAxes, fontsize=14, verticalalignment='top',
             horizontalalignment='left',
             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
     
@@ -188,13 +188,10 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     outliers_sorted = df[df['is_outlier']].sort_values('discordance_rate', ascending=True)
     ax2.barh(range(len(outliers_sorted)), outliers_sorted['discordance_rate'],
              color='#DE8F05', linewidth=0.5, edgecolor='black', alpha=0.85)
-    ax2.axvline(threshold, color='red', linestyle='--', linewidth=1.5,
-                label=f'Threshold ({threshold:.1f}%)')
     ax2.set_yticks(range(len(outliers_sorted)))
-    ax2.set_yticklabels(outliers_sorted['sample'], fontsize=9)
-    ax2.set_xlabel('Non-Reference Discordance (%)', fontsize=12, fontweight='bold')
-    ax2.set_title(f'Outliers (n={len(outliers_sorted)})', fontsize=13, fontweight='bold')
-    ax2.legend(fontsize=10, loc='lower right')
+    ax2.set_yticklabels(outliers_sorted['sample'], fontsize=14)
+    ax2.set_xlabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
+    ax2.set_title(f'Outliers (n={len(outliers_sorted)})', fontsize=14, fontweight='bold')
     ax2.spines[['top', 'right']].set_visible(False)
     ax2.grid(True, alpha=0.3, axis='x')
     ax2.set_axisbelow(True)
