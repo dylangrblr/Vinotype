@@ -64,6 +64,13 @@ workflow PIPELINE_INITIALISATION {
     )
 
     //
+    // Fail fast: variant annotation requires a configured SnpEff database
+    //
+    if (!params.skip_variant_annotation && !(params.snpeff_db_name && params.snpeff_db && params.snpeff_config)) {
+        error("Variant annotation is enabled (skip_variant_annotation = false) but the SnpEff database is not fully configured. Set snpeff_db_name, snpeff_db and snpeff_config, or set skip_variant_annotation = true to disable annotation.")
+    }
+
+    //
     // Create channel from input file provided through params.input
     //
 
