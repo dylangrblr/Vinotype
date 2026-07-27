@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Analyse genotype concordance from a GATK GCsS file and plot:
+Analyse genotype concordance from a bcftools GCsS file and plot:
   1. discordance_vs_quality.png  — scatter: depth / GQ vs discordance rate
   2. concordance_two_panel.png   — ranked discordance overview + labelled outliers
 
 Usage:
-    figure_3_gt_disc.py <gcss_file> [vcf_file] [output_dir]
+    figure_3_4_gt_quality_disc.py file_gcss.txt file.vcf.gz ./test
+file_gcss.txt : GCsS (Genotype Concordance Summary Statistics) file from bcftools
+
 """
 
 import os

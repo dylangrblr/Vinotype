@@ -88,7 +88,7 @@ annotations = [
     (4.0,  5.05,  f"Array ∩ Raw\n(not Filtered)\n{fmt(array_raw_only)}", 16, "center"),
     (5.5,  4.35,  f"Array ∩ Raw\n∩ Filtered\n{fmt(array_raw_filt)}", 16, "center"),
     (6.5,  2.25,  f"Raw ∩ Filtered\n(not Array)\n{fmt(raw_filt_only)}", 16, "center"),
-    # Array ∩ Filtered only = 0, omit for clarity
+    # Array ∩ Filtered only = 0
 ]
 
 for x, y, text, fs, ha in annotations:

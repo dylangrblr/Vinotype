@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Plot per-variant allele frequencies for a given gene from a SnpEff annotated VCF,
-and annotate samples carrying a selected amino acid substitution.
+and annotate samples carrying a selected amino acid substitution, e.g., p. Lys284Asn or p. Arg197Leu
 
 Usage:
-   python figure_5_plot_variant_allele_freq.py -v file.vcf.gz -g AGL11 -m Arg197Leu
+   python figure_6_plot_variant_allele_freq.py -v file.vcf.gz -g AGL11 -m Arg197Leu
 """
 
 # -- imports --
