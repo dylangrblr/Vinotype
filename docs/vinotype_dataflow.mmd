@@ -1,0 +1,177 @@
+%%metro title: Vinotype workflow
+%%metro style: light
+%%metro compact_offsets: true
+%%metro legend: bl
+%%metro line: main | Vinotype workflow | #0570b0
+%%metro line: fastq | FASTQ ingress and QC | #17a05b
+%%metro line: genozip | Genozip BAM ingress | #fa931e
+%%metro line: gvcf | Genozip GVCF ingress | #d51313
+%%metro file: INPUT | csv
+%%metro files: FASTQ | fq.gz | Raw reads
+%%metro files: FILTERED_READS | fq.gz | Filtered reads
+%%metro files: GENOZIP_BAM | bam | Genozip-compressed BAM
+%%metro files: GZ_INPUT | bam | Genozip-compressed BAM
+%%metro files: GVCF_INPUT | vcf.gz | Genozip-compressed GVCF
+%%metro file: QC_REPORT | HTML | Report
+%%metro file: REF | FASTA | Reference genome
+%%metro file: M | HTML | Report
+%%metro files: SNP_VCF | vcf.gz | SNP variants
+%%metro files: INDEL_VCF | vcf.gz | InDel variants
+%%metro off_track: SNP_VCF
+%%metro off_track: INDEL_VCF
+%%metro off_track: GENOZIP_BAM
+%%metro grid: INPUT_LINE | 1,1
+%%metro grid: QC_LINE | 2,1
+%%metro grid: ALIGN_LINE | 3,1
+%%metro grid: CALL_LINE | 4,1
+%%metro grid: JOINT_LINE | 4,2
+%%metro grid: FILTER_LINE | 3,2
+%%metro grid: ANNO_LINE | 2,2
+
+graph LR
+
+  subgraph INPUT_LINE[Input routing]
+    INPUT[ ]
+    PARSE[Parse samplesheet]
+    FASTQ[ ]
+    GZ_INPUT[ ]
+    GVCF_INPUT[ ]
+    INPUT -->|main| PARSE
+    PARSE -->|fastq| FASTQ
+    PARSE -->|genozip| GZ_INPUT
+    PARSE -->|gvcf| GVCF_INPUT
+  end
+
+  subgraph QC_LINE[Quality control]
+    %%metro entry: left | fastq
+    FASTQC[FastQC]
+    FASTP[fastp]
+    FILTERED_READS[ ]
+    MULTIQC[MultiQC]
+    QC_REPORT[ ]
+    FASTQC -->|fastq| FASTP
+    FASTP -->|fastq| FILTERED_READS
+    FASTP -->|fastq| MULTIQC
+    MULTIQC -->|fastq| QC_REPORT
+  end
+
+  subgraph ALIGN_LINE[Reference alignment]
+    %%metro entry: left | fastq, genozip
+    REF[ ]
+    IDX[BWA index]
+    ALIGN[BWA-MEM2]
+    PICARD[Picard SortSam]
+    PICARD2[Picard MarkDuplicates]
+    SAMTOOLS[Samtools view]
+    GZC[Genozip]
+    GENOZIP_BAM[ ]
+    BAMT[Samtools index]
+    FLAGS[Samtools Flagstat]
+    REF -->|main| IDX
+    IDX -->|fastq| ALIGN
+    ALIGN -->|fastq| PICARD
+    PICARD -->|fastq| PICARD2
+    PICARD2 -->|fastq| SAMTOOLS
+    SAMTOOLS -->|fastq| GZC
+    GZC -->|fastq| GENOZIP_BAM
+    GZC -->|fastq| BAMT
+    GZC -->|genozip| BAMT
+    BAMT -->|fastq| FLAGS
+    BAMT -->|genozip| FLAGS
+  end
+
+  subgraph CALL_LINE[Variant calling]
+    %%metro direction: TB
+    %%metro entry: left | fastq, genozip, gvcf
+    %%metro exit: bottom | fastq, genozip, gvcf
+    HC[HaplotypeCaller]
+    GZD[Genozip]
+    SPLIT[bcftools view]
+    HC -->|fastq| SPLIT
+    HC -->|genozip| SPLIT
+    GZD -->|gvcf| SPLIT
+  end
+
+  subgraph JOINT_LINE[Joint genotyping (chr)]
+    %%metro direction: RL
+    %%metro entry: top | fastq, genozip, gvcf
+    %%metro exit: left | fastq, genozip, gvcf
+    REBLOCK[ReblockGVCF]
+    GDB[GenomicsDBImport]
+    GT[GenotypeGVCFs]
+    REBLOCK -->|fastq| GDB
+    REBLOCK -->|genozip| GDB
+    REBLOCK -->|gvcf| GDB
+    GDB -->|fastq| GT
+    GDB -->|genozip| GT
+    GDB -->|gvcf| GT
+  end
+
+  subgraph FILTER_LINE[Variant filtering (chr)]
+    %%metro direction: RL
+    %%metro entry: right | fastq, genozip, gvcf
+    SELECTVARIANTS[SelectVariants]
+    TABLE[VariantsToTable]
+    FINAL[bcftools filter]
+    BCFVIEW[bcftools view]
+    VCFTOOLS[vcftools]
+    SELECTVARIANTS -->|fastq| TABLE
+    SELECTVARIANTS -->|genozip| TABLE
+    SELECTVARIANTS -->|gvcf| TABLE
+    TABLE -->|fastq| FINAL
+    TABLE -->|genozip| FINAL
+    TABLE -->|gvcf| FINAL
+    FINAL -->|fastq| BCFVIEW
+    FINAL -->|genozip| BCFVIEW
+    FINAL -->|gvcf| BCFVIEW
+    BCFVIEW -->|fastq| VCFTOOLS
+    BCFVIEW -->|genozip| VCFTOOLS
+    BCFVIEW -->|gvcf| VCFTOOLS
+  end
+
+  subgraph ANNO_LINE[Variant effect prediction]
+    %%metro direction: RL
+    %%metro entry: right | fastq, genozip, gvcf
+    MERGE[MergeVcfs]
+    SNPEFF[SnpEff annotate]
+    SNPSIFT[SnpSift filter]
+    MQC[MultiQC]
+    M[ ]
+    SNP_VCF[ ]
+    INDEL_VCF[ ]
+    MERGE -->|fastq| SNPEFF
+    MERGE -->|genozip| SNPEFF
+    MERGE -->|gvcf| SNPEFF
+    SNPEFF -->|fastq| SNPSIFT
+    SNPEFF -->|genozip| SNPSIFT
+    SNPEFF -->|gvcf| SNPSIFT
+    SNPSIFT -->|fastq| MQC
+    SNPSIFT -->|genozip| MQC
+    SNPSIFT -->|gvcf| MQC
+    SNPSIFT -->|fastq| SNP_VCF
+    SNPSIFT -->|genozip| SNP_VCF
+    SNPSIFT -->|gvcf| SNP_VCF
+    SNPSIFT -->|fastq| INDEL_VCF
+    SNPSIFT -->|genozip| INDEL_VCF
+    SNPSIFT -->|gvcf| INDEL_VCF
+    MQC -->|fastq| M
+    MQC -->|genozip| M
+    MQC -->|gvcf| M
+  end
+
+  %% Cross-subgraph edges — declared at top level
+  FASTQ -->|fastq| FASTQC
+  FILTERED_READS -->|fastq| ALIGN
+  GZ_INPUT -->|genozip| GZC
+  GVCF_INPUT -->|gvcf| GZD
+  FLAGS -->|fastq| HC
+  FLAGS -->|genozip| HC
+  SPLIT -->|fastq| REBLOCK
+  SPLIT -->|genozip| REBLOCK
+  SPLIT -->|gvcf| REBLOCK
+  GT -->|fastq| SELECTVARIANTS
+  GT -->|genozip| SELECTVARIANTS
+  GT -->|gvcf| SELECTVARIANTS
+  VCFTOOLS -->|fastq| MERGE
+  VCFTOOLS -->|genozip| MERGE
+  VCFTOOLS -->|gvcf| MERGE
