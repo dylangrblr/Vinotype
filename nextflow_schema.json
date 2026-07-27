@@ -10,7 +10,10 @@
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": ["input", "outdir"],
+            "required": [
+                "input",
+                "outdir"
+            ],
             "properties": {
                 "input": {
                     "type": "string",
@@ -108,7 +111,14 @@
                     "description": "Method used to save pipeline results to output directory.",
                     "help_text": "The Nextflow `publishDir` option specifies which intermediate files should be saved to the output directory. This option tells the pipeline what method should be used to move these files. See [Nextflow docs](https://www.nextflow.io/docs/latest/process.html#publishdir) for details.",
                     "fa_icon": "fas fa-copy",
-                    "enum": ["symlink", "rellink", "link", "copy", "copyNoFollow", "move"],
+                    "enum": [
+                        "symlink",
+                        "rellink",
+                        "link",
+                        "copy",
+                        "copyNoFollow",
+                        "move"
+                    ],
                     "hidden": true
                 },
                 "email_on_fail": {
@@ -185,6 +195,245 @@
                     "hidden": true
                 }
             }
+        },
+        "reference_genome_options": {
+            "title": "Reference genome options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Reference genome FASTA and (optionally) pre-built indexes. If an index is not provided it is built at runtime from ref_fasta.",
+            "properties": {
+                "ref_fasta": {
+                    "type": "string",
+                    "description": "Path or URL to the reference genome FASTA.",
+                    "fa_icon": "fas fa-file"
+                },
+                "ref_intervals_list": {
+                    "type": "string",
+                    "description": "Path or URL to the intervals list (one contig per line) used for scatter-gather.",
+                    "fa_icon": "fas fa-list"
+                },
+                "ref_samtools_faidx": {
+                    "type": "string",
+                    "description": "Pre-built samtools faidx (.fai) index. Built at runtime if omitted.",
+                    "fa_icon": "fas fa-file",
+                    "hidden": true
+                },
+                "ref_samtools_dict": {
+                    "type": "string",
+                    "description": "Pre-built sequence dictionary (.dict). Built at runtime if omitted.",
+                    "fa_icon": "fas fa-file",
+                    "hidden": true
+                },
+                "ref_bwa_index": {
+                    "type": "string",
+                    "description": "Pre-built BWA-MEM2 index directory. Built at runtime if omitted.",
+                    "fa_icon": "fas fa-folder",
+                    "hidden": true
+                },
+                "ref_fasta_genozip": {
+                    "type": "string",
+                    "description": "Genozip reference (.ref.genozip) used when use_genozip is enabled.",
+                    "fa_icon": "fas fa-file-archive",
+                    "hidden": true
+                }
+            }
+        },
+        "pipeline_stage_options": {
+            "title": "Pipeline stage options",
+            "type": "object",
+            "fa_icon": "fas fa-toggle-on",
+            "description": "Toggle optional stages and alternate tools.",
+            "properties": {
+                "skip_gatk4_haplotypecaller_spark": {
+                    "type": "boolean",
+                    "description": "Use the non-Spark GATK4 HaplotypeCaller instead of the Spark variant.",
+                    "default": true
+                },
+                "skip_merged_analysis": {
+                    "type": "boolean",
+                    "description": "Stop after per-sample variant calling (skip joint genotyping, filtering and annotation).",
+                    "default": false
+                },
+                "skip_variant_annotation": {
+                    "type": "boolean",
+                    "description": "Skip SnpEff variant annotation. Set to false and configure snpeff_db_name/snpeff_db/snpeff_config to enable.",
+                    "default": true
+                },
+                "base_genomicsdb": {
+                    "type": "string",
+                    "description": "Existing GenomicsDB workspace to extend (incremental import). Creates a new DB if omitted.",
+                    "fa_icon": "fas fa-database",
+                    "hidden": true
+                }
+            }
+        },
+        "variant_annotation_options": {
+            "title": "Variant annotation options",
+            "type": "object",
+            "fa_icon": "fas fa-tags",
+            "description": "SnpEff database (required when skip_variant_annotation = false).",
+            "properties": {
+                "snpeff_db_name": {
+                    "type": "string",
+                    "description": "SnpEff genome database name (e.g. GCF_030704535.1).",
+                    "fa_icon": "fas fa-database"
+                },
+                "snpeff_db": {
+                    "type": "string",
+                    "description": "Path to the SnpEff data directory containing the genome database.",
+                    "fa_icon": "fas fa-folder"
+                },
+                "snpeff_config": {
+                    "type": "string",
+                    "description": "Path to the SnpEff config file.",
+                    "fa_icon": "fas fa-cog"
+                }
+            }
+        },
+        "compression_options": {
+            "title": "Compression options",
+            "type": "object",
+            "fa_icon": "fas fa-file-archive",
+            "description": "Optional genozip compression of BAM/gVCF checkpoints (requires a license).",
+            "properties": {
+                "use_genozip": {
+                    "type": "boolean",
+                    "description": "Enable genozip compression/decompression of BAM/gVCF checkpoints.",
+                    "default": false
+                },
+                "genozip_license_file": {
+                    "type": "string",
+                    "description": "Path to the genozip license file (required when use_genozip is enabled).",
+                    "fa_icon": "fas fa-key",
+                    "hidden": true
+                }
+            }
+        },
+        "variant_filtering_options": {
+            "title": "Variant filtering options",
+            "type": "object",
+            "fa_icon": "fas fa-filter",
+            "description": "Hard-filter thresholds applied to SNPs (bcftools expression).",
+            "properties": {
+                "filter_sor": {
+                    "type": "string",
+                    "description": "SOR threshold.",
+                    "default": "3.0"
+                },
+                "filter_fs": {
+                    "type": "string",
+                    "description": "FS threshold.",
+                    "default": "60.0"
+                },
+                "filter_readposranksum": {
+                    "type": "string",
+                    "description": "ReadPosRankSum threshold.",
+                    "default": "-8.0"
+                },
+                "filter_mqranksum": {
+                    "type": "string",
+                    "description": "MQRankSum threshold.",
+                    "default": "-12.5"
+                },
+                "filter_mq": {
+                    "type": "string",
+                    "description": "MQ threshold.",
+                    "default": "40.0"
+                },
+                "filter_qd": {
+                    "type": "string",
+                    "description": "QD threshold.",
+                    "default": "2.0"
+                },
+                "filter_qual": {
+                    "type": "string",
+                    "description": "QUAL threshold.",
+                    "default": "30.0"
+                },
+                "filter_ac": {
+                    "type": "string",
+                    "description": "Minimum allele count.",
+                    "default": "2"
+                },
+                "filter_format_dp": {
+                    "type": "string",
+                    "description": "Per-sample FORMAT/DP threshold.",
+                    "default": "5"
+                },
+                "filter_format_dp_fraction": {
+                    "type": "string",
+                    "description": "Max fraction of samples allowed below filter_format_dp.",
+                    "default": "0.10"
+                }
+            }
+        },
+        "read_trimming_options": {
+            "title": "Read QC and trimming options",
+            "type": "object",
+            "fa_icon": "fas fa-cut",
+            "description": "fastp read trimming / QC parameters.",
+            "properties": {
+                "fastqc_detect_adapter_for_pe": {
+                    "type": "boolean",
+                    "description": "fastp: auto-detect adapters for paired-end reads.",
+                    "default": true
+                },
+                "fastqc_unqualified_percent_limit": {
+                    "type": "string",
+                    "description": "fastp: max % of unqualified bases allowed.",
+                    "default": "40"
+                },
+                "fastqc_qualified_quality_phred": {
+                    "type": "string",
+                    "description": "fastp: quality value a base is qualified at.",
+                    "default": "20"
+                },
+                "fastqc_average_qual": {
+                    "type": "string",
+                    "description": "fastp: minimum average read quality (0 = off).",
+                    "default": "0"
+                },
+                "fastqc_n_base_limit": {
+                    "type": "string",
+                    "description": "fastp: max number of N bases (0 = off).",
+                    "default": "0"
+                },
+                "fastqc_trim_front1": {
+                    "type": "string",
+                    "description": "fastp: bases to trim from the front of read 1.",
+                    "default": "15"
+                },
+                "fastqc_trim_tail1": {
+                    "type": "string",
+                    "description": "fastp: bases to trim from the tail of read 1.",
+                    "default": "0"
+                },
+                "fastqc_trim_front2": {
+                    "type": "string",
+                    "description": "fastp: bases to trim from the front of read 2.",
+                    "default": "15"
+                },
+                "fastqc_trim_tail2": {
+                    "type": "string",
+                    "description": "fastp: bases to trim from the tail of read 2.",
+                    "default": "0"
+                },
+                "fastqc_length_required": {
+                    "type": "string",
+                    "description": "fastp: minimum read length to keep.",
+                    "default": "100"
+                },
+                "fastqc_poly_g_min_len": {
+                    "type": "string",
+                    "description": "fastp: min length for polyG trimming (0 = off).",
+                    "default": "0"
+                },
+                "fastqc_poly_x_min_len": {
+                    "type": "string",
+                    "description": "fastp: min length for polyX trimming (0 = off).",
+                    "default": "0"
+                }
+            }
         }
     },
     "allOf": [
@@ -196,6 +445,24 @@
         },
         {
             "$ref": "#/$defs/generic_options"
+        },
+        {
+            "$ref": "#/$defs/reference_genome_options"
+        },
+        {
+            "$ref": "#/$defs/pipeline_stage_options"
+        },
+        {
+            "$ref": "#/$defs/variant_annotation_options"
+        },
+        {
+            "$ref": "#/$defs/compression_options"
+        },
+        {
+            "$ref": "#/$defs/variant_filtering_options"
+        },
+        {
+            "$ref": "#/$defs/read_trimming_options"
         }
     ]
 }
