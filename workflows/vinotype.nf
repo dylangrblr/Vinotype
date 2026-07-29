@@ -125,11 +125,11 @@ workflow VINOTYPE {
 
         //
         // SUBWORKFLOW: VARIANT_EFFECT_PREDICTION (SnpEff)
-        // Opt-in via skip_variant_annotation (default: skipped). Requires a
-        // configured SnpEff database; the required params are validated up
-        // front in PIPELINE_INITIALISATION.
+        // Only run when a SnpEff database is configured. Profiles that do not
+        // provide one (e.g. the public test profiles) skip annotation and the
+        // pipeline still completes through joint genotyping + filtering.
         //
-        if (!params.skip_variant_annotation) {
+        if (params.snpeff_db_name && params.snpeff_db && params.snpeff_config) {
             VARIANT_EFFECT_PREDICTION (
                 VARIANT_FILTERING.out.gvcf_tbi,
                 REFERENCE_ALIGNMENT.out.dict_index,
@@ -139,6 +139,8 @@ workflow VINOTYPE {
             )
             ch_multiqc_files = ch_multiqc_files.mix(
                 VARIANT_EFFECT_PREDICTION.out.snpeff_report.collect{it[1]}.ifEmpty([]))
+        } else {
+            log.warn "Skipping VARIANT_EFFECT_PREDICTION (SnpEff): set snpeff_db_name, snpeff_db and snpeff_config to enable variant annotation."
         }
 
     }
