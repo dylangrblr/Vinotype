@@ -99,6 +99,9 @@ def extract_record(parts: list) -> dict:
         maf = min(af, 1.0 - af)
     result["MAF"] = maf
 
+    result["MQ"]  = _float(info["MQ"])  if "MQ"  in info else None
+    result["SOR"] = _float(info["SOR"]) if "SOR" in info else None
+
     # --- Pre-compute FORMAT field indices once for all samples -------------
     fmt_keys = parts[8].split(":")
     fki      = {k: i for i, k in enumerate(fmt_keys)}
@@ -114,9 +117,10 @@ def extract_record(parts: list) -> dict:
         return result   # no GT field — cannot stratify
 
     # --- Aggregate per-sample metrics across all samples -------------------
-    wt_dp,  alt_dp  = [], []
-    wt_gq,  alt_gq  = [], []
-    alt_vaf         = []
+    wt_dp,  het_dp,  hom_dp  = [], [], []
+    wt_gq,  het_gq,  hom_gq  = [], [], []
+    het_vaf, hom_vaf          = [], []
+    het_count = hom_count = 0
 
     for sample_str in parts[9:]:
         fields = sample_str.split(":")
@@ -131,22 +135,41 @@ def extract_record(parts: list) -> dict:
         valid = [a for a in gt.split("/") if a != "."]
         if not valid:
             continue
-        is_alt = any(a != "0" for a in valid)
+        has_ref    = any(a == "0" for a in valid)
+        has_alt    = any(a != "0" for a in valid)
+        is_wt      = has_ref and not has_alt
+        is_het     = has_ref and has_alt
+        is_hom_alt = has_alt and not has_ref
+
+        if is_het:
+            het_count += 1
+        elif is_hom_alt:
+            hom_count += 1
 
         # DP
         if 0 <= dp_i < nf:
             dp = _float(fields[dp_i])
             if dp is not None:
-                (alt_dp if is_alt else wt_dp).append(dp)
+                if is_wt:
+                    wt_dp.append(dp)
+                elif is_het:
+                    het_dp.append(dp)
+                elif is_hom_alt:
+                    hom_dp.append(dp)
 
         # GQ
         if 0 <= gq_i < nf:
             gq = _float(fields[gq_i])
             if gq is not None:
-                (alt_gq if is_alt else wt_gq).append(gq)
+                if is_wt:
+                    wt_gq.append(gq)
+                elif is_het:
+                    het_gq.append(gq)
+                elif is_hom_alt:
+                    hom_gq.append(gq)
 
-        # VAF —> only alt carrying samples
-        if is_alt:
+        # VAF —> alt-carrying samples only, split by HET / HOM ALT
+        if is_het or is_hom_alt:
             vaf = None
             # 1. Explicit VAF tag
             if 0 <= vaf_i < nf:
@@ -172,17 +195,28 @@ def extract_record(parts: list) -> dict:
                         vaf = ao / total
                 except ValueError:
                     pass
-            # 4. GT dosage fallback
-            if vaf is None:
+            # 4. GT dosage fallback — only when FORMAT has no read-level VAF fields;
+            #    avoids substituting 0.5 for every het sample with a missing VAF tag.
+            if vaf is None and vaf_i < 0 and ad_i < 0 and ao_i < 0 and ro_i < 0:
                 vaf = sum(1 for a in valid if a != "0") / len(valid)
-            alt_vaf.append(vaf)
+            if is_het:
+                het_vaf.append(vaf)
+            else:
+                hom_vaf.append(vaf)
+
+    # HetRatio: proportion of alt-carrying samples that are heterozygous
+    _total_alt = het_count + hom_count
+    result["HetRatio"] = het_count / _total_alt if _total_alt > 0 else None
 
     # Store per-locus means (None when no samples contributed)
     result["DP_wt"]   = float(np.mean(wt_dp))   if wt_dp   else None
-    result["DP_alt"]  = float(np.mean(alt_dp))  if alt_dp  else None
+    result["DP_het"]  = float(np.mean(het_dp))  if het_dp  else None
+    result["DP_hom"]  = float(np.mean(hom_dp))  if hom_dp  else None
     result["GQ_wt"]   = float(np.mean(wt_gq))   if wt_gq   else None
-    result["GQ_alt"]  = float(np.mean(alt_gq))  if alt_gq  else None
-    result["VAF_alt"] = float(np.mean(alt_vaf)) if alt_vaf else None
+    result["GQ_het"]  = float(np.mean(het_gq))  if het_gq  else None
+    result["GQ_hom"]  = float(np.mean(hom_gq))  if hom_gq  else None
+    result["VAF_het"] = float(np.mean(het_vaf)) if het_vaf else None
+    result["VAF_hom"] = float(np.mean(hom_vaf)) if hom_vaf else None
 
     return result
 
@@ -193,10 +227,16 @@ def extract_record(parts: list) -> dict:
 
 # Ordered list
 METRICS = [
-    "AC", "AN", "AF", "MAF",
-    "DP_wt", "DP_alt",
-    "GQ_wt", "GQ_alt",
-    "VAF_alt",
+    # "AC",
+    # "AN",
+    # "AF",
+    "MAF",
+    "MQ",
+    "SOR",
+    "HetRatio",
+    "DP_wt", "DP_het", "DP_hom",
+    "GQ_wt", "GQ_het", "GQ_hom",
+    "VAF_het", "VAF_hom",
 ]
 
 def read_vcf(path: str) -> dict[str, list]:
@@ -252,15 +292,21 @@ def sig_label(p: float) -> str:
 # ---------------------------------------------------------------------------
 
 METRIC_META = {
-    "AC":      ("Allele Count",                           "royalblue"),
-    "AN":      ("Allele Number",                          "steelblue"),
-    "AF":      ("Allele Frequency",                       "seagreen"),
-    "MAF":     ("Minor Allele Frequency",                 "mediumseagreen"),
-    "DP_wt":   ("Read Depth — WT samples (0/0)",          "#e07b54"),
-    "DP_alt":  ("Read Depth — alt-carrying samples",      "tomato"),
-    "GQ_wt":   ("Genotype Quality — WT samples (0/0)",    "#9b82c4"),
-    "GQ_alt":  ("Genotype Quality — alt-carrying samples", "mediumpurple"),
-    "VAF_alt": ("Variant Allele Frequency — alt-carrying samples", "darkorange"),
+    "AC":       ("Allele Count",                                        "royalblue"),
+    "AN":       ("Allele Number",                                       "steelblue"),
+    "AF":       ("Allele Frequency",                                    "seagreen"),
+    "MAF":      ("Minor Allele Frequency",                              "mediumseagreen"),
+    "MQ":       ("RMS Mapping Quality",                                 "darkslategray"),
+    "SOR":      ("Strand Odds Ratio",                                   "firebrick"),
+    "HetRatio": ("Heterozygosity Ratio [HET / (HET + HOM ALT)]",       "goldenrod"),
+    "DP_wt":    ("Read Depth — WT samples (0/0)",                       "#e07b54"),
+    "DP_het":   ("Read Depth — heterozygous samples",                   "tomato"),
+    "DP_hom":   ("Read Depth — homozygous alt samples",                 "darkred"),
+    "GQ_wt":    ("Genotype Quality — WT samples (0/0)",                 "#9b82c4"),
+    "GQ_het":   ("Genotype Quality — heterozygous samples",             "mediumpurple"),
+    "GQ_hom":   ("Genotype Quality — homozygous alt samples",           "purple"),
+    "VAF_het":  ("Variant Allele Frequency — heterozygous samples",     "darkorange"),
+    "VAF_hom":  ("Variant Allele Frequency — homozygous alt samples",   "orangered"),
 }
 
 # Colours for the two groups
@@ -333,9 +379,21 @@ def plot_comparison(
             parts_colors.append(COLOR_B)
             parts_labels.append(label_b)
 
+        # For DP metrics, filter to the 1st–99th percentile before KDE so
+        # the violin shape is not distorted by outliers outside the visible range.
+        if metric.startswith("DP_") and parts_data:
+            _comb = np.concatenate(parts_data)
+            _lo_dp, _hi_dp = np.percentile(_comb, [1, 99])
+            violin_data = []
+            for arr in parts_data:
+                clipped = arr[(arr >= _lo_dp) & (arr <= _hi_dp)]
+                violin_data.append(clipped if len(clipped) > 0 else arr)
+        else:
+            violin_data = parts_data
+
         if parts_data:
             vp = ax.violinplot(
-                parts_data,
+                violin_data,
                 positions=parts_pos,
                 widths=0.6,
                 showmedians=True,
@@ -372,8 +430,17 @@ def plot_comparison(
             ax.set_title(desc, fontsize=9, fontweight="bold")
 
         ax.set_ylabel(metric, fontsize=9)
-        ax.set_xticks(parts_pos)
-        ax.set_xticklabels(parts_labels, fontsize=9)
+        ax.set_xticks([1, 2])
+        ax.set_xticklabels([label_a, label_b], fontsize=9)
+        # Mark positions where a dataset has no data for this metric
+        for _nd_arr, _nd_pos, _nd_col in [(arr_a, 1, COLOR_A), (arr_b, 2, COLOR_B)]:
+            if not len(_nd_arr):
+                ax.text(
+                    _nd_pos, 0.5, "no data",
+                    transform=ax.get_xaxis_transform(),
+                    ha="center", va="center",
+                    fontsize=9, color=_nd_col, style="italic", alpha=0.7,
+                )
 
         # Stats boxes
         if len(arr_a):

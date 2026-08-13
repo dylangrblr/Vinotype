@@ -17,7 +17,8 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import vcf
+import cyvcf2
+from scipy import stats
 
 def parse_gcss_file(filepath):
     """Parse GCsS and flag outliers using 2 standard deviations method"""
@@ -61,33 +62,40 @@ def parse_gcss_file(filepath):
 
 def extract_quality_metrics(vcf_file, gcss_df):
     """Extract quality metrics from VCF"""
-    
-    reader = vcf.Reader(filename=vcf_file)
+
+    vcf = cyvcf2.VCF(vcf_file)
     sample_names = set(gcss_df['sample'].values)
-    
+    # pre-compute index map to avoid per-variant name lookup
+    sample_indices = {name: i for i, name in enumerate(vcf.samples) if name in sample_names}
+
     metrics = defaultdict(lambda: {
         'dp_values': [],
         'gq_values': [],
         'ad_ref': [],
         'ad_alt': [],
     })
-    
+
+    MISSING = -2147483648  # cyvcf2 sentinel for missing integer FORMAT fields
+
     print("Extracting quality metrics from VCF...")
-    for i, record in enumerate(reader, 1):
+    for i, variant in enumerate(vcf, 1):
         if i % 10000 == 0:
             print(f"  Processed {i} variants...")
-        
-        for sample in record.samples:
-            if sample.sample not in sample_names:
-                continue
-            
-            if sample['DP'] is not None:
-                metrics[sample.sample]['dp_values'].append(sample['DP'])
-            if sample['GQ'] is not None:
-                metrics[sample.sample]['gq_values'].append(sample['GQ'])
-            if sample['AD'] is not None and len(sample['AD']) >= 2:
-                metrics[sample.sample]['ad_ref'].append(sample['AD'][0])
-                metrics[sample.sample]['ad_alt'].append(sample['AD'][1])
+
+        dp = variant.format('DP')
+        gq = variant.format('GQ')
+        ad = variant.format('AD')
+
+        for name, idx in sample_indices.items():
+            if dp is not None and dp[idx][0] != MISSING:
+                metrics[name]['dp_values'].append(int(dp[idx][0]))
+            if gq is not None and gq[idx][0] != MISSING:
+                metrics[name]['gq_values'].append(int(gq[idx][0]))
+            if ad is not None and len(ad[idx]) >= 2 and ad[idx][0] != MISSING:
+                metrics[name]['ad_ref'].append(int(ad[idx][0]))
+                metrics[name]['ad_alt'].append(int(ad[idx][1]))
+
+    vcf.close()
     
     summary = []
     for sample_name, data in metrics.items():
@@ -113,31 +121,52 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     threshold = df['threshold'].iloc[0]
 
     # discordance_vs_quality
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7), gridspec_kw={"width_ratios": [1, 1.4]})
+
+    n_outliers = int(df['is_outlier'].sum())
+
+    # Spearman correlations (outlier samples only)
+    rs_dp, p_dp = stats.spearmanr(outliers['mean_dp'].dropna(), outliers.loc[outliers['mean_dp'].notna(), 'discordance_rate'])
+    rs_gq, p_gq = stats.spearmanr(outliers['mean_gq'].dropna(), outliers.loc[outliers['mean_gq'].notna(), 'discordance_rate'])
+
+    def _p_label(p):
+        if p < 0.001:
+            return 'p < 0.001'
+        return f'p = {p:.3f}'
 
     # Depth vs Discordance
     axes[0].scatter(normal['mean_dp'], normal['discordance_rate'], 
-                   s=100, alpha=0.6, color='#0173B2', label='Normal', edgecolors='black')
+                   s=150, alpha=0.6, color='#0173B2', label='Normal', edgecolors='black')
     axes[0].scatter(outliers['mean_dp'], outliers['discordance_rate'], 
-                   s=150, alpha=0.8, color='#DE8F05', label='High-Discordance', 
+                   s=150, alpha=0.8, color="#EB8942", label='High-Discordance', 
                    edgecolors='black', linewidth=2)
     
     axes[0].set_xlabel('Mean Depth (DP)', fontsize=14, fontweight='bold')
     axes[0].set_ylabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
-    axes[0].legend(fontsize=14)
+    axes[0].legend(fontsize=14, loc='upper right')
     axes[0].grid(True, alpha=0.3)
+    axes[0].text(0.98, 0.85,
+                 f'Outliers (n={n_outliers})\nSpearman $r_s$ = {rs_dp:.3f}\n{_p_label(p_dp)}',
+                 transform=axes[0].transAxes, fontsize=13,
+                 verticalalignment='top', horizontalalignment='right',
+                 bbox=dict(boxstyle='round', facecolor="#FFDBC0", alpha=0.9))
     
     # GQ vs Discordance
     axes[1].scatter(normal['mean_gq'], normal['discordance_rate'], 
-                   s=100, alpha=0.6, color='#0173B2', label='Normal', edgecolors='black')
+                   s=150, alpha=0.6, color='#0173B2', label='Normal', edgecolors='black')
     axes[1].scatter(outliers['mean_gq'], outliers['discordance_rate'], 
-                   s=150, alpha=0.8, color='#DE8F05', label='High-Discordance', 
+                   s=150, alpha=0.8, color='#EB8942', label='High-Discordance', 
                    edgecolors='black', linewidth=2)
     
     axes[1].set_xlabel('Mean Genotype Quality (GQ)', fontsize=14, fontweight='bold')
     axes[1].set_ylabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
-    axes[1].legend(fontsize=14)
+    axes[1].legend(fontsize=14, loc='upper left')
     axes[1].grid(True, alpha=0.3)
+    axes[1].text(0.02, 0.85,
+                 f'Outliers (n={n_outliers})\nSpearman $r_s$ = {rs_gq:.3f}\n{_p_label(p_gq)}',
+                 transform=axes[1].transAxes, fontsize=13,
+                 verticalalignment='top', horizontalalignment='left',
+                 bbox=dict(boxstyle='round', facecolor="#FFDBC0", alpha=0.9))
     
     plt.suptitle('Relationship Between Quality Metrics and Discordance', 
                 fontsize=14, fontweight='bold', y=1.00)
@@ -152,14 +181,14 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     mean_normal = df[~df['is_outlier']]['discordance_rate'].mean()
     std_normal = df[~df['is_outlier']]['discordance_rate'].std()
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6),
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25, 6),
                                    gridspec_kw={"width_ratios": [3, 1]})
     
     # Sort all samples by discordance for left panel
     df_sorted = df.sort_values('discordance_rate', ascending=True).reset_index(drop=True)
     
     # --- Left panel: Full overview ---
-    colors = ['#DE8F05' if v >= threshold else '#0173B2'
+    colors = ['#EB8942' if v >= threshold else '#0173B2'
               for v in df_sorted['discordance_rate']]
     ax1.bar(range(len(df_sorted)), df_sorted['discordance_rate'], 
             color=colors, width=1.0, linewidth=0, alpha=0.85)
@@ -179,7 +208,7 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     ax1.text(0.02, 0.75, f'Mean Discordance (All):\n{mean_all:.2f}%\nSD: {std_all:.2f}%', 
             transform=ax1.transAxes, fontsize=14, verticalalignment='top',
             horizontalalignment='left',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            bbox=dict(boxstyle='round', facecolor="#FFDBC0", alpha=0.8))
     
     ax1.text(0.02, 0.25, f'Mean Discordance (Normal):\n{mean_normal:.2f}%\nSD: {std_normal:.2f}%', 
             transform=ax1.transAxes, fontsize=14, verticalalignment='top',
@@ -189,7 +218,7 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     # --- Right panel: Outliers only with sample labels ---
     outliers_sorted = df[df['is_outlier']].sort_values('discordance_rate', ascending=True)
     ax2.barh(range(len(outliers_sorted)), outliers_sorted['discordance_rate'],
-             color='#DE8F05', linewidth=0.5, edgecolor='black', alpha=0.85)
+             color='#EB8942', linewidth=0.5, edgecolor='black', alpha=0.85)
     ax2.set_yticks(range(len(outliers_sorted)))
     ax2.set_yticklabels(outliers_sorted['sample'], fontsize=14)
     ax2.set_xlabel('Non-Reference Discordance (%)', fontsize=14, fontweight='bold')
