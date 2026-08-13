@@ -3,19 +3,19 @@
 Venn diagram showing SNP overlap between three datasets:
   - SNP-array benchmark  (10,228 SNPs)
   - Vinotype raw          (41,943,184 SNPs)
-  - Vinotype filtered     (15,846,099 SNPs)
+  - Vinotype filtered     (15,265,753 SNPs)
 
 All datasets cover the same 220 samples.
 
 Assumptions:
   - Filtered is a strict subset of Raw (filtered SNPs ⊆ raw SNPs).
   - Array ∩ Raw  = 9,507   (array SNPs recovered by raw calls)
-  - Array ∩ Filtered = 9,434   (array SNPs recovered by filtered calls)
-  - Therefore Array ∩ Raw ∩ Filtered = 9,434
-  - Array ∩ Raw only (not Filtered) = 9,507 − 9,434 = 73
+  - Array ∩ Filtered = 9,128   (array SNPs recovered by filtered calls)
+  - Therefore Array ∩ Raw ∩ Filtered = 9,128
+  - Array ∩ Raw only (not Filtered) = 9,507 − 9,128 = 379
   - Array only = 10,228 − 9,507 = 721
   - Filtered only = 0  (Filtered ⊆ Raw, so no Filtered-exclusive SNPs outside Raw)
-  - Raw ∩ Filtered (not Array) = 15,846,099 − 9,434 = 15,836,665
+  - Raw ∩ Filtered (not Array) = 15,846,099 − 9,128 = 15,836,971
   - Raw only (not Array, not Filtered) = 41,943,184 − 9,507 − 15,836,665 = 26,097,012
 """
 
@@ -36,14 +36,14 @@ def fmt(n):
 
 array_total     = 10_228
 raw_total       = 41_943_184
-filtered_total  = 15_846_099
+filtered_total  = 15_265_753
 
-array_raw_filt  = 9_434          # all three
-array_raw_only  = 9_507 - 9_434  # array ∩ raw, NOT filtered  = 73
+array_raw_filt  = 9_128          # all three (= array ∩ filtered, since filtered ⊆ raw)
+array_raw_only  = 9_507 - 9_128  # array ∩ raw, NOT filtered  = 379
 array_only      = array_total - 9_507  # 721
 
-raw_filt_only   = filtered_total - array_raw_filt   # raw ∩ filtered, NOT array = 15,836,665
-raw_only        = raw_total - 9_507 - raw_filt_only  # raw only = 26,097,012
+raw_filt_only   = filtered_total - array_raw_filt   # raw ∩ filtered, NOT array = 6,131,619
+raw_only        = raw_total - 9_507 - raw_filt_only  # raw only = 35,801,058
 # filtered_only = 0  (Filtered ⊆ Raw)
 # array_filt_only = 0  (Filtered ⊆ Raw)
 
