@@ -9,7 +9,8 @@ process GATK4_VARIANTSTOTABLE {
 
     input:
     tuple val(meta),  path(vcf), path(tbi)
-    val(annotation_fields)
+    val(info_fields)
+    val(genotype_fields)
     tuple val(meta2), path(fasta)
     tuple val(meta3), path(fai)
     tuple val(meta4), path(dict)
@@ -25,16 +26,8 @@ process GATK4_VARIANTSTOTABLE {
     def args = task.ext.args ?:''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    // Process annotation fields for GATK format
-    def gatk_fields = annotation_fields.collect { field ->
-        // Convert bcftools format to GATK format
-        field.replaceAll(/\[ *%/, '')
-             .replaceAll(/\] */, '')
-             .replaceAll(/%/, '')
-             .replaceAll(/INFO\//, '')
-    }.join(' -F ')
-
-
+    def info_args   = info_fields.collect     { "-F ${it}" }.join(' ')
+    def format_args = genotype_fields.collect  { "-GF ${it}" }.join(' ')
 
     def avail_mem = 3072
     if (!task.memory) {
@@ -46,7 +39,8 @@ process GATK4_VARIANTSTOTABLE {
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         VariantsToTable \\
         --variant ${vcf} \\
-        -F ${gatk_fields} \\
+        ${info_args} \\
+        ${format_args} \\
         --output ${prefix}_annotations.tsv \\
         --show-filtered \\
         --tmp-dir . \\

@@ -16,8 +16,11 @@
  */
 
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__SNP } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
+include { BCFTOOLS_FILLTAGS as BCFTOOLS_FILLTAGS__SNP      } from '../../../modules/nf-core/bcftools/filltags/main.nf'
+include { BCFTOOLS_FILLTAGS as BCFTOOLS_FILLTAGS__INDEL      } from '../../../modules/nf-core/bcftools/filltags/main.nf'
 include { GATK4_SELECTVARIANTS as GATK4_SELECTVARIANTS__INDEL } from '../../../modules/nf-core/gatk4/selectvariants/main.nf'
 include { GATK4_VARIANTSTOTABLE } from '../../../modules/nf-core/gatk4/variantstotable/main'
+
 
 include { UTILS_FINALFILTER      } from '../../../modules/local/utils/finalfilter/main.nf'
 
@@ -59,8 +62,9 @@ workflow VARIANT_FILTERING {
         )
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__SNP.out.versions.first())
 
-        ch_snp_vcf = GATK4_SELECTVARIANTS__SNP.out.vcf
-        ch_snp_vcf_tbi = GATK4_SELECTVARIANTS__SNP.out.vcf_tbi
+        BCFTOOLS_FILLTAGS__SNP( GATK4_SELECTVARIANTS__SNP.out.vcf_tbi )
+        ch_versions = ch_versions.mix(BCFTOOLS_FILLTAGS__SNP.out.versions.first())
+        ch_snp_vcf = BCFTOOLS_FILLTAGS__SNP.out.vcf
 
     //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_SELECTVARIANTS__INDEL(
@@ -73,31 +77,24 @@ workflow VARIANT_FILTERING {
         )
         ch_versions = ch_versions.mix(GATK4_SELECTVARIANTS__INDEL.out.versions.first())
 
-        list_annotation_types = [
-            "[ %DP]",
-            "[ %GQ]",
-            "%AC",
-            "%AD",
-            "%AF",
-            "%AN",
-            "%FS",
-            "%GQ",
-            "%INFO/AF",
-            "%INFO/DP",
-            "%MQ",
-            "%MQRankSum",
-            "%QD",
-            "%QUAL",
-            "%ReadPosRankSum",
-            "%DP",
-            "%SOR" ]
+        BCFTOOLS_FILLTAGS__INDEL( GATK4_SELECTVARIANTS__INDEL.out.vcf_tbi )
+        ch_versions = ch_versions.mix(BCFTOOLS_FILLTAGS__INDEL.out.versions.first())
+        ch_indel_vcf = BCFTOOLS_FILLTAGS__INDEL.out.vcf
+
+        // Index filltags SNP output
+        BCFTOOLS_INDEX(ch_snp_vcf)
+        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
+        ch_snp_vcf_tbi = BCFTOOLS_INDEX.out.vcf_tbi
+        list_info_fields     = ['AC', 'AF', 'AN', 'DP', 'FS', 'MQ', 'MQRankSum', 'QD', 'ReadPosRankSum', 'SOR', 'AC_Het', 'AC_Hom']
+        list_genotype_fields = ['GT', 'AD', 'DP', 'GQ', 'VAF']
 
 // NOTE: GATK4_VARIANTSTOTABLE is an alternative for the bcftools query based approach
 
     //TODO: 20 instances of this process (per-chr multi-sample)
         GATK4_VARIANTSTOTABLE(
             ch_snp_vcf_tbi,
-            list_annotation_types,
+            list_info_fields,
+            list_genotype_fields,
             ch_fasta_val,
             ch_faidx_index_val,
             ch_dict_index_val
@@ -105,15 +102,9 @@ workflow VARIANT_FILTERING {
 
         ch_versions = ch_versions.mix(GATK4_VARIANTSTOTABLE.out.versions.first())
 
-        // 2. Index SNP VCF for downstream querying and filtering
-    //TODO: 20 instances of this process (per-chr multi-sample)
-        BCFTOOLS_INDEX(ch_snp_vcf)
-        ch_versions = ch_versions.mix(BCFTOOLS_INDEX.out.versions.first())
-        // ch_snp_vcf_indexed = BCFTOOLS_INDEX.out.tbi
-
         // 3. Extract annotation fields and plot distributions
     //TODO: 20 instances of this process (per-chr multi-sample)
-        BCFTOOLS_QUERY( BCFTOOLS_INDEX.out.vcf_tbi, list_annotation_types)
+        BCFTOOLS_QUERY( ch_snp_vcf_tbi, list_info_fields + list_genotype_fields)
 
         ch_versions = ch_versions.mix(BCFTOOLS_QUERY.out.versions.first())
         // ch_annotation_txt = BCFTOOLS_QUERY.out.txt

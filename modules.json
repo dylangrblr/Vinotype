@@ -35,6 +35,11 @@
                         "git_sha": "c9c3ef86c1892413b3c86fb38c4e39fd7288512f",
                         "installed_by": ["modules"]
                     },
+                    "bcftools/filltags": {
+                        "branch": "master",
+                        "git_sha": "c9c3ef86c1892413b3c86fb38c4e39fd7288512f",
+                        "installed_by": ["modules"]
+                    },
                     "bwa/index": {
                         "branch": "master",
                         "git_sha": "a29f18660f5e3748d44d6f716241e70c942c065d",
