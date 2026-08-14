@@ -403,62 +403,62 @@
             "fa_icon": "fas fa-cut",
             "description": "fastp read trimming / QC parameters.",
             "properties": {
-                "fastqc_detect_adapter_for_pe": {
+                "fastp_detect_adapter_for_pe": {
                     "type": "boolean",
                     "description": "fastp: auto-detect adapters for paired-end reads.",
                     "default": true
                 },
-                "fastqc_unqualified_percent_limit": {
+                "fastp_unqualified_percent_limit": {
                     "type": "string",
                     "description": "fastp: max % of unqualified bases allowed.",
                     "default": "40"
                 },
-                "fastqc_qualified_quality_phred": {
+                "fastp_qualified_quality_phred": {
                     "type": "string",
                     "description": "fastp: quality value a base is qualified at.",
                     "default": "20"
                 },
-                "fastqc_average_qual": {
+                "fastp_average_qual": {
                     "type": "string",
                     "description": "fastp: minimum average read quality (0 = off).",
                     "default": "0"
                 },
-                "fastqc_n_base_limit": {
+                "fastp_n_base_limit": {
                     "type": "string",
                     "description": "fastp: max number of N bases (0 = off).",
                     "default": "0"
                 },
-                "fastqc_trim_front1": {
+                "fastp_trim_front1": {
                     "type": "string",
                     "description": "fastp: bases to trim from the front of read 1.",
                     "default": "15"
                 },
-                "fastqc_trim_tail1": {
+                "fastp_trim_tail1": {
                     "type": "string",
                     "description": "fastp: bases to trim from the tail of read 1.",
                     "default": "0"
                 },
-                "fastqc_trim_front2": {
+                "fastp_trim_front2": {
                     "type": "string",
                     "description": "fastp: bases to trim from the front of read 2.",
                     "default": "15"
                 },
-                "fastqc_trim_tail2": {
+                "fastp_trim_tail2": {
                     "type": "string",
                     "description": "fastp: bases to trim from the tail of read 2.",
                     "default": "0"
                 },
-                "fastqc_length_required": {
+                "fastp_length_required": {
                     "type": "string",
                     "description": "fastp: minimum read length to keep.",
                     "default": "100"
                 },
-                "fastqc_poly_g_min_len": {
+                "fastp_poly_g_min_len": {
                     "type": "string",
                     "description": "fastp: min length for polyG trimming (0 = off).",
                     "default": "0"
                 },
-                "fastqc_poly_x_min_len": {
+                "fastp_poly_x_min_len": {
                     "type": "string",
                     "description": "fastp: min length for polyX trimming (0 = off).",
                     "default": "0"
