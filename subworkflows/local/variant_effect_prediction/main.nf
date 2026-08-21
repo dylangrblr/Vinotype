@@ -51,12 +51,12 @@ workflow VARIANT_EFFECT_PREDICTION {
     // This is only enabled if users supply a protein reference FASTA file
     //
     if (protein_ref_fasta) {
-        ch_transcriptome = Channel.of([
+        ch_protein_ref = Channel.of([
             file(protein_ref_fasta, checkIfExists: true),
             protein_ref_fai ? file(protein_ref_fai, checkIfExists: true) : []
         ])
 
-        ESM_PREPARATION ( SNPSIFT_FILTER.out.vcf, ch_transcriptome )
+        ESM_PREPARATION ( SNPSIFT_FILTER.out.vcf, ch_protein_ref )
         ch_versions = ch_versions.mix(ESM_PREPARATION.out.versions)
 
         ch_mc = Channel.value(
