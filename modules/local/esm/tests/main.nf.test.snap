@@ -1,0 +1,55 @@
+{
+    "vinotype - [fasta_dir, var_dir], [] - stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.scores.csv:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "1": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "2": [
+                    "versions.yml:md5,ea35d05f74fe13534dcdff71ca016b41"
+                ],
+                "figures": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "scores": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.scores.csv:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "versions": [
+                    "versions.yml:md5,ea35d05f74fe13534dcdff71ca016b41"
+                ]
+            }
+        ],
+        "timestamp": "2026-08-20T16:29:20.504464",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "24.10.5"
+        }
+    }
+}

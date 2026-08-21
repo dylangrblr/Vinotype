@@ -1,0 +1,53 @@
+{
+    "vinotype - [tsv, fasta] - stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        [
+                            
+                        ],
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "1": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.mapping.tsv:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "2": [
+                    "versions.yml:md5,8d2c96e3cecdce5cd0a336644f0f5e6a"
+                ],
+                "dirs": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        [
+                            
+                        ],
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "versions": [
+                    "versions.yml:md5,8d2c96e3cecdce5cd0a336644f0f5e6a"
+                ]
+            }
+        ],
+        "timestamp": "2026-08-20T16:01:40.998954",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "24.10.5"
+        }
+    }
+}

@@ -135,10 +135,14 @@ workflow VINOTYPE {
                 REFERENCE_ALIGNMENT.out.dict_index,
                 params.snpeff_db_name,
                 params.snpeff_db,
-                params.snpeff_config
+                params.snpeff_config,
+                params.protein_ref_fasta,
+                params.protein_ref_fai,
+                params.esm_model_cache
             )
             ch_multiqc_files = ch_multiqc_files.mix(
                 VARIANT_EFFECT_PREDICTION.out.snpeff_report.collect{it[1]}.ifEmpty([]))
+            ch_versions = ch_versions.mix(VARIANT_EFFECT_PREDICTION.out.versions)
         }
 
     }

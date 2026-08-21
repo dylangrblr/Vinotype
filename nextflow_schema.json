@@ -290,6 +290,31 @@
                 }
             }
         },
+        "esm_preparation_options": {
+            "title": "ESM preparation options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Reference protein FASTA required for sequence extraction prior to ESM variant-effect scoring.",
+            "properties": {
+                "protein_ref_fasta": {
+                    "type": "string",
+                    "description": "Path to the indexed reference protein FASTA file used to extract protein sequences.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "protein_ref_fai": {
+                    "type": "string",
+                    "description": "Path to the samtools .fai index for protein_ref_fasta. Generated at runtime if omitted.",
+                    "fa_icon": "fas fa-file-alt",
+                    "hidden": true
+                },
+                "esm_model_cache": {
+                    "type": "string",
+                    "description": "Path to a pre-downloaded HuggingFace model cache directory. Avoids re-downloading the ESM2 model weights on every run.",
+                    "fa_icon": "fas fa-hdd",
+                    "hidden": true
+                }
+            }
+        },
         "compression_options": {
             "title": "Compression options",
             "type": "object",
@@ -484,6 +509,9 @@
         },
         {
             "$ref": "#/$defs/variant_annotation_options"
+        },
+        {
+            "$ref": "#/$defs/esm_preparation_options"
         },
         {
             "$ref": "#/$defs/compression_options"

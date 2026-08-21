@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/environment-schema.json
+# NOTE: GPU-enabled runs should use the Docker image (modules/local/esm/Dockerfile)
+# built with the CUDA PyTorch index URL instead of this conda environment.
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+dependencies:
+  - pytorch::pytorch=2.3.0=*cpu*
+  - conda-forge::transformers>=4.40.0
+  - conda-forge::accelerate>=0.30.0
+  - bioconda::biopython>=1.83
+  - conda-forge::pandas>=2.2.0
+  - conda-forge::matplotlib-base>=3.8.0
+  - conda-forge::seaborn>=0.13.0
+  - conda-forge::tqdm>=4.66.0
+  - conda-forge::sentencepiece>=0.1.99

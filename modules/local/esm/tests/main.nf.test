@@ -1,0 +1,38 @@
+nextflow_process {
+
+    name "Test Process ESM_PREDICT"
+    script "../main.nf"
+    process "ESM_PREDICT"
+
+    tag "modules"
+    tag "modules_local"
+    tag "esm"
+    tag "esm/predict"
+
+    test("vinotype - [fasta_dir, var_dir], [] - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test' ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta.fai', checkIfExists: true)
+                ]
+                input[1] = []
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(process.out).match() }
+            )
+        }
+
+    }
+
+}

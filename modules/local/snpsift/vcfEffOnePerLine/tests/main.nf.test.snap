@@ -1,0 +1,35 @@
+{
+    "sarscov2 - vcf.gz - stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.split.vcf.gz:md5,68b329da9893e34099c7d8ad5cb9c940"
+                    ]
+                ],
+                "1": [
+                    "versions.yml:md5,1dcb0e4ccead99954afa8528b0a3bdb7"
+                ],
+                "vcf": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.split.vcf.gz:md5,68b329da9893e34099c7d8ad5cb9c940"
+                    ]
+                ],
+                "versions": [
+                    "versions.yml:md5,1dcb0e4ccead99954afa8528b0a3bdb7"
+                ]
+            }
+        ],
+        "timestamp": "2026-08-20T16:00:27.832797",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "24.10.5"
+        }
+    }
+}

@@ -1,0 +1,38 @@
+nextflow_process {
+
+    name "Test Process SAMTOOLS_FAIDX_EXTRACT"
+    script "../main.nf"
+    process "SAMTOOLS_FAIDX_EXTRACT"
+
+    tag "modules"
+    tag "modules_local"
+    tag "samtools"
+    tag "samtools/faidx_extract"
+
+    test("sarscov2 - [tsv], fasta, fai - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test' ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/vcf/test.vcf.gz', checkIfExists: true)
+                ]
+                input[1] = file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                input[2] = file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta.fai', checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(process.out).match() }
+            )
+        }
+
+    }
+
+}
