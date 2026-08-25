@@ -6,7 +6,7 @@ workflow ESM_PREPARATION {
 
     take:
     ch_vcf              // channel: [ val(meta), vcf.gz ] — filtered+annotated VCF from VARIANT_EFFECT_PREDICTION
-    ch_transcriptome    // channel: [ path(fasta), path(fai) ] — indexed reference proteins FASTA
+    ch_ref_protein    // channel: [ path(fasta), path(fai) ] — indexed reference proteins FASTA
 
     main:
 
@@ -28,13 +28,13 @@ workflow ESM_PREPARATION {
     //
     // Retrieve the reference protein sequence for each variant
     //
-    ch_transcriptome_fasta = ch_transcriptome.map { fasta, fai -> fasta }
-    ch_transcriptome_fai   = ch_transcriptome.map { fasta, fai -> fai   }
+    ch_ref_protein_fasta = ch_ref_protein.map { fasta, fai -> fasta }
+    ch_ref_protein_fai   = ch_ref_protein.map { fasta, fai -> fai   }
 
     SAMTOOLS_FAIDX_EXTRACT (
         SNPSIFT_EXTRACTFIELDS.out.tsv,
-        ch_transcriptome_fasta,
-        ch_transcriptome_fai
+        ch_ref_protein_fasta,
+        ch_ref_protein_fai
     )
     ch_versions = ch_versions.mix(SAMTOOLS_FAIDX_EXTRACT.out.versions.first())
 
