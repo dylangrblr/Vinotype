@@ -394,6 +394,16 @@
 				    "type": "string",
 				    "description": "Maximum fraction of homozygous alternate samples allowed to fall below filter_hom_ad before the variant is filtered.",
 				    "default": "0.0"
+                },
+                "filter_het_vaf" : {
+                    "type": "string",
+                    "description": "Minimum variant allele fraction (VAF) required for heterozygous (0/1) genotype calls.",
+                    "default": "0.5"
+                },
+                "filter_het_vaf_fraction" : {
+                    "type": "string",
+                    "description": "Maximum fraction of heterozygous samples (0/1) allowed to fall below filter_het_vaf before the variant is filtered.",
+                    "default": "0.90"
                 }
             }
         },
