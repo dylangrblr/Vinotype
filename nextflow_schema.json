@@ -394,7 +394,12 @@
 				    "type": "string",
 				    "description": "Maximum fraction of homozygous alternate samples allowed to fall below filter_hom_ad before the variant is filtered.",
 				    "default": "0.0"
-                }
+                },
+                "filter_het_vaf_fraction": {
+				    "type": "string",
+				    "description": "Maximum fraction of heterozygous samples (0/1) allowed to fall below a variant allele frequency (VAF) threshold of 50% before the variant is excluded.",
+				    "default": "0.8"
+			    }
             }
         },
         "read_trimming_options": {
