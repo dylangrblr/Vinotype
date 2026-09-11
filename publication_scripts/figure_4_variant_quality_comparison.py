@@ -9,7 +9,7 @@ and visualise distributions as paired violin plots with Mann-Whitney U tests.
   MAF — minor allele frequency (INFO/MAF, or derived from INFO/AF)
 
 Usage:
-    python plot_variant_quality_comparison.py \\
+    python3 figure_4_variant_quality_comparison.py \\
         -a datasetA.vcf.gz -b datasetB.vcf.gz \\
         --label-a DatasetA --label-b DatasetB \\
         -o quality_comparison.png --stats quality_stats.tsv

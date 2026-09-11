@@ -8,7 +8,7 @@ before gProfiler enrichment.
 
 Example
 -------
-python3 SI_figure_3_go_enrichment.py \
+python3 SI_figure_6_go_enrichment.py \
     --vcf results/test.ann.vcf.gz \
     --conversion-table V5_to_v4.3_conversions.xlsx \
     --out-prefix test

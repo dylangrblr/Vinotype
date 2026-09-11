@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
 Venn diagram showing SNP overlap between three datasets:
-  - SNP-array benchmark  (10,228 SNPs)
-  - Vinotype raw          (41,943,184 SNPs)
-  - Vinotype filtered     (15,265,753 SNPs)
+  - SNP-array benchmark  (9,194 SNPs)
+  - Vinotype raw          (45,610,747 SNPs)
+  - Vinotype filtered     (9,768,889 SNPs)
 
 All datasets cover the same 220 samples.
 
 Assumptions:
-  - Filtered is a strict subset of Raw (filtered SNPs ⊆ raw SNPs).
-  - Array ∩ Raw  = 9,507   (array SNPs recovered by raw calls)
-  - Array ∩ Filtered = 9,128   (array SNPs recovered by filtered calls)
-  - Therefore Array ∩ Raw ∩ Filtered = 9,128
-  - Array ∩ Raw only (not Filtered) = 9,507 − 9,128 = 379
-  - Array only = 10,228 − 9,507 = 721
+  - Filtered is a subset of Raw (filtered SNPs ⊆ raw SNPs).
+  - Array ∩ Raw  = 9,087   (array SNPs recovered by raw calls)
+  - Array ∩ Filtered = 8,129   (array SNPs recovered by filtered calls)
+  - Therefore Array ∩ Raw ∩ Filtered = 8,129
+  - Array ∩ Raw only (not Filtered) = 9,087 − 8,129 = 958
+  - Array only = 9,194 − 9,087 = 107
   - Filtered only = 0  (Filtered ⊆ Raw, so no Filtered-exclusive SNPs outside Raw)
-  - Raw ∩ Filtered (not Array) = 15,846,099 − 9,128 = 15,836,971
-  - Raw only (not Array, not Filtered) = 41,943,184 − 9,507 − 15,836,665 = 26,097,012
+  - Raw ∩ Filtered (not Array) = 9,768,889 − 8,129 = 9,760,760
+  - Raw only (not Array, not Filtered) = 45,610,747 − 9,087 − 9,760,760 = 35,840,900
 """
 
 import matplotlib
@@ -34,16 +34,19 @@ def fmt(n):
 
 # ── counts ───────────────────────────────────────────────────────────────────
 
-array_total     = 10_228
-raw_total       = 41_943_184
-filtered_total  = 15_265_753
+array_total     = 9_194
+raw_total       = 45_610_747
+filtered_total  = 9_768_889
 
-array_raw_filt  = 9_128          # all three (= array ∩ filtered, since filtered ⊆ raw)
-array_raw_only  = 9_507 - 9_128  # array ∩ raw, NOT filtered  = 379
-array_only      = array_total - 9_507  # 721
+array_raw_overlap = 9_087
+array_filt_overlap = 8_129
 
-raw_filt_only   = filtered_total - array_raw_filt   # raw ∩ filtered, NOT array = 6,131,619
-raw_only        = raw_total - 9_507 - raw_filt_only  # raw only = 35,801,058
+array_raw_filt  = array_filt_overlap  # all three (= array ∩ filtered, since filtered ⊆ raw)
+array_raw_only  = array_raw_overlap - array_raw_filt  # array ∩ raw, NOT filtered = 958
+array_only      = array_total - array_raw_overlap  # 107
+
+raw_filt_only   = filtered_total - array_raw_filt   # raw ∩ filtered, NOT array = 9_760_760
+raw_only        = raw_total - array_raw_overlap - raw_filt_only  # raw only = 35,840,900
 # filtered_only = 0  (Filtered ⊆ Raw)
 # array_filt_only = 0  (Filtered ⊆ Raw)
 
@@ -118,7 +121,7 @@ ax.set_title("Overlap Among Vinotype-Predicted and Benchmark SNPs",
              fontsize=14, fontweight="bold", pad=12, color="#1a1a1a")
 
 plt.tight_layout()
-out_path = "docs/snp_overlap_venn.png"
+out_path = "./snp_overlap_venn.png"
 fig.savefig(out_path, dpi=180, bbox_inches="tight", facecolor="white")
-print(f"Saved → {out_path}")
+print(f"Saved: {out_path}")
 plt.close(fig)
