@@ -112,7 +112,7 @@ def write_go_color_file(
             lines.append(f"{COLOR_RETAINED} {term}  # {name} (retained)")
     with open(filepath, "w") as fh:
         fh.write("\n".join(lines) + "\n")
-    print(f"  Color file written → {filepath}")
+    print(f"  Color file written: {filepath}")
 
 
 def plot_go_hierarchies(
@@ -132,7 +132,7 @@ def plot_go_hierarchies(
     if result.returncode != 0:
         print(f"  go_plot stderr:\n{result.stderr}")
     else:
-        print(f"  Saved → {output_file}")
+        print(f"  Saved: {output_file}")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -174,4 +174,4 @@ print(f"\nFinal dataset: {len(df_final)} terms retained")
 print(df_final[["source", "native", "name", "p_value"]].to_string(index=False))
 
 df_final.to_csv("gprofiler_redundancy_filtered.tsv", sep="\t", index=False)
-print("\nSaved → gprofiler_redundancy_filtered.tsv")
+print("\nSaved: gprofiler_redundancy_filtered.tsv")

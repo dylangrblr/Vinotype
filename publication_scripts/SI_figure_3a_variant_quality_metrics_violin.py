@@ -14,17 +14,19 @@ Per-sample metrics: DP_wt, DP_alt, GQ_wt, GQ_alt, VAF_alt
                       _alt = alt-carrying (0/1, 1/1, …) samples only
 
 Usage:
-    python SI_figure_2_variant_quality_metrics_violin.py groupA.vcf.gz groupB.vcf.gz \\
-        --label-a Benchmark --label-b Additional \\
-        -o comparison.png --stats stats.tsv
+    python SI_figure_2_variant_quality_metrics_violin.py \\
+        groupA.vcf.gz \\
+        groupB.vcf.gz \\
+        --label-a Benchmark \\
+        --label-b Additional \\
+        -o comparison.png \\
+        --stats stats.tsv
 """
 
 from __future__ import annotations
 
 import argparse
-import gzip
 import warnings
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -32,157 +34,146 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from cyvcf2 import VCF
 from scipy.stats import mannwhitneyu
 
 # ---------------------------------------------------------------------------
 # I/O helpers
 # ---------------------------------------------------------------------------
 
-def open_vcf(path: str):
-    """Open plain or gzipped VCF."""
-    if path.endswith(".gz"):
-        return gzip.open(path, "rt")
-    return open(path, "r")
-
-
-def parse_info(info_str: str) -> dict:
-    info: dict = {}
-    for field in info_str.split(";"):
-        if "=" in field:
-            k, v = field.split("=", 1)
-            info[k] = v
-        else:
-            info[field] = True
-    return info
-
-
-def _float(val: str):
-    """Return float or None for missing/empty values."""
-    v = str(val).split(",")[0].strip()
-    if v in (".", "", "NA"):
+def _first_scalar(val):
+    """Take the first element of an INFO value (handles arrays/scalars)."""
+    if val is None or isinstance(val, bool):
         return None
+    if isinstance(val, (tuple, list, np.ndarray)):
+        return float(val[0]) if len(val) else None
     try:
-        return float(v)
-    except ValueError:
+        return float(val)
+    except (TypeError, ValueError):
         return None
 
 
 # ---------------------------------------------------------------------------
-# Per-variant extraction
+# Per-variant extraction (cyvcf2, vectorized)
 # ---------------------------------------------------------------------------
 
-def extract_record(parts: list) -> dict:
+def extract_record(var) -> dict:
     """
     Return a dict with per-site keys (AC, AN, AF, MAF) and per-sample
-    aggregated keys (DP_wt, DP_alt, GQ_wt, GQ_alt, VAF_alt).
-    _wt = mean across 0/0 samples; _alt = mean across alt-carrying samples.
-
-    FORMAT fields are accessed by pre-computed integer indices
+    aggregated keys split by genotype class (_wt / _het / _hom).
+    Uses cyvcf2 NumPy accessors — no per-sample Python string parsing.
     """
-    if len(parts) < 10:   # need FORMAT + at least one sample
-        return {}
-
-    info = parse_info(parts[7])
+    info = var.INFO
     result: dict = {}
 
     # --- Per-site metrics --------------------------------------------------
-    result["AC"] = _float(info["AC"]) if "AC" in info else None
-    result["AN"] = _float(info["AN"]) if "AN" in info else None
+    result["AC"] = _first_scalar(info.get("AC"))
+    result["AN"] = _first_scalar(info.get("AN"))
 
-    af = _float(info["AF"]) if "AF" in info else None
+    af = _first_scalar(info.get("AF"))
     if af is None and result["AC"] is not None and result["AN"]:
         af = result["AC"] / result["AN"]
     result["AF"] = af
 
-    maf = _float(info["MAF"]) if "MAF" in info else None
+    maf = _first_scalar(info.get("MAF"))
     if maf is None and af is not None:
         maf = min(af, 1.0 - af)
     result["MAF"] = maf
 
-    # --- Pre-compute FORMAT field indices once for all samples -------------
-    fmt_keys = parts[8].split(":")
-    fki      = {k: i for i, k in enumerate(fmt_keys)}
-    gt_i     = fki.get("GT",  -1)
-    dp_i     = fki.get("DP",  -1)
-    gq_i     = fki.get("GQ",  -1)
-    ad_i     = fki.get("AD",  -1)
-    vaf_i    = fki.get("VAF", -1)
-    ao_i     = fki.get("AO",  -1)
-    ro_i     = fki.get("RO",  -1)
+    result["MQ"]  = _first_scalar(info.get("MQ"))
+    result["SOR"] = _first_scalar(info.get("SOR"))
 
-    if gt_i < 0:
-        return result   # no GT field — cannot stratify
+    # --- Per-sample metrics (vectorized) -----------------------------------
+    gt_types = var.gt_types           # 0=HOM_REF, 1=HET, 2=UNKNOWN, 3=HOM_ALT
+    known = gt_types != 2
+    if not known.any():
+        return result                 # no GT field or all missing
 
-    # --- Aggregate per-sample metrics across all samples -------------------
-    wt_dp,  alt_dp  = [], []
-    wt_gq,  alt_gq  = [], []
-    alt_vaf         = []
+    wt  = known & (gt_types == 0)
+    het = known & (gt_types == 1)
+    hom = known & (gt_types == 3)
 
-    for sample_str in parts[9:]:
-        fields = sample_str.split(":")
-        nf = len(fields)
+    het_count = int(het.sum())
+    hom_count = int(hom.sum())
+    _total_alt = het_count + hom_count
+    result["HetRatio"] = het_count / _total_alt if _total_alt > 0 else None
 
-        if gt_i >= nf:
-            continue
-        gt_raw = fields[gt_i]
-        if gt_raw in (".", "./.", ".|."):
-            continue
-        gt    = gt_raw.replace("|", "/")
-        valid = [a for a in gt.split("/") if a != "."]
-        if not valid:
-            continue
-        is_alt = any(a != "0" for a in valid)
+    # DP / GQ: missing values come back as -1 (DP int) / -1.0 (GQ float).
+    # Guard against undeclared tags (KeyError from cyvcf2 header lookup).
+    n_samples = gt_types.shape[0]
+    try:
+        dp = np.asarray(var.gt_depths, dtype=float)
+    except KeyError:
+        dp = np.full(n_samples, np.nan)
+    dp = np.where(dp >= 0, dp, np.nan)
+    try:
+        gq = np.asarray(var.gt_quals, dtype=float)
+    except KeyError:
+        gq = np.full(n_samples, np.nan)
+    gq = np.where(gq >= 0, gq, np.nan)
 
-        # DP
-        if 0 <= dp_i < nf:
-            dp = _float(fields[dp_i])
-            if dp is not None:
-                (alt_dp if is_alt else wt_dp).append(dp)
+    def _masked_mean(arr: np.ndarray, mask: np.ndarray):
+        sel = arr[mask]
+        sel = sel[~np.isnan(sel)]
+        return float(sel.mean()) if sel.size else None
 
-        # GQ
-        if 0 <= gq_i < nf:
-            gq = _float(fields[gq_i])
-            if gq is not None:
-                (alt_gq if is_alt else wt_gq).append(gq)
+    result["DP_wt"]  = _masked_mean(dp, wt)
+    result["DP_het"] = _masked_mean(dp, het)
+    result["DP_hom"] = _masked_mean(dp, hom)
+    result["GQ_wt"]  = _masked_mean(gq, wt)
+    result["GQ_het"] = _masked_mean(gq, het)
+    result["GQ_hom"] = _masked_mean(gq, hom)
 
-        # VAF —> only alt carrying samples
-        if is_alt:
-            vaf = None
-            # 1. Explicit VAF tag
-            if 0 <= vaf_i < nf:
-                vaf = _float(fields[vaf_i])
-            # 2. AD-derived
-            if vaf is None and 0 <= ad_i < nf:
-                raw = fields[ad_i]
-                if raw not in (".", ""):
-                    try:
-                        ad = [int(x) for x in raw.split(",")]
-                        total = sum(ad)
-                        if total > 0 and len(ad) >= 2:
-                            vaf = sum(ad[1:]) / total
-                    except ValueError:
-                        pass
-            # 3. AO/RO-derived
-            if vaf is None and 0 <= ao_i < nf and 0 <= ro_i < nf:
-                try:
-                    ao = sum(int(x) for x in fields[ao_i].split(","))
-                    ro = int(fields[ro_i])
-                    total = ao + ro
-                    if total > 0:
-                        vaf = ao / total
-                except ValueError:
-                    pass
-            # 4. GT dosage fallback
-            if vaf is None:
-                vaf = sum(1 for a in valid if a != "0") / len(valid)
-            alt_vaf.append(vaf)
+    # VAF — alt-carrying samples only, split HET / HOM ALT.
+    # Source: explicit VAF tag > AD-derived > AO/RO-derived. Samples with none
+    # of these stay NaN and are excluded from the means.
+    vaf_arr = np.full(gt_types.shape[0], np.nan)
 
-    # Store per-locus means (None when no samples contributed)
-    result["DP_wt"]   = float(np.mean(wt_dp))   if wt_dp   else None
-    result["DP_alt"]  = float(np.mean(alt_dp))  if alt_dp  else None
-    result["GQ_wt"]   = float(np.mean(wt_gq))   if wt_gq   else None
-    result["GQ_alt"]  = float(np.mean(alt_gq))  if alt_gq  else None
-    result["VAF_alt"] = float(np.mean(alt_vaf)) if alt_vaf else None
+    def _fmt(name):
+        """var.format() but returns None when the tag is absent/undeclared."""
+        try:
+            return var.format(name)
+        except KeyError:
+            return None
+
+    tag = _fmt("VAF")                 # explicit VAF FORMAT tag
+    if tag is not None:
+        vaf_arr = np.asarray(tag, dtype=float).reshape(-1)
+
+    if np.isnan(vaf_arr).all():       # fall back to AD
+        ad = _fmt("AD")               # (n_samples, n_alleles)
+        if ad is not None:
+            ad = np.asarray(ad, dtype=float)
+            ad = np.where(ad >= 0, ad, np.nan)
+            if ad.ndim > 1 and ad.shape[1] >= 2:
+                total = np.nansum(ad, axis=1)
+                alt   = np.nansum(ad[:, 1:], axis=1)
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    vaf_arr = np.where(total > 0, alt / total, np.nan)
+
+    if np.isnan(vaf_arr).all():       # fall back to AO/RO
+        ao = _fmt("AO")
+        ro = _fmt("RO")
+        if ao is not None and ro is not None:
+            ao = np.asarray(ao, dtype=float)
+            ao = np.where(ao >= 0, ao, np.nan)
+            ao_sum = np.nansum(ao, axis=1) if ao.ndim > 1 else ao
+            ro = np.asarray(ro, dtype=float).reshape(-1)
+            ro = np.where(ro >= 0, ro, np.nan)
+            total = ao_sum + ro
+            with np.errstate(invalid="ignore", divide="ignore"):
+                vaf_arr = np.where(total > 0, ao_sum / total, np.nan)
+
+    # Samples with a VAF value still missing (no VAF/AD/AO/RO) are excluded
+    # from the per-locus means below via NaN filtering.
+
+    het_vaf = vaf_arr[het]
+    het_vaf = het_vaf[~np.isnan(het_vaf)]
+    hom_vaf = vaf_arr[hom]
+    hom_vaf = hom_vaf[~np.isnan(hom_vaf)]
+
+    result["VAF_het"] = float(het_vaf.mean()) if het_vaf.size else None
+    result["VAF_hom"] = float(hom_vaf.mean()) if hom_vaf.size else None
 
     return result
 
@@ -193,26 +184,28 @@ def extract_record(parts: list) -> dict:
 
 # Ordered list
 METRICS = [
-    "AC", "AN", "AF", "MAF",
-    "DP_wt", "DP_alt",
-    "GQ_wt", "GQ_alt",
-    "VAF_alt",
+    # "AC",
+    # "AN",
+    # "AF",
+    "MAF",
+    "MQ",
+    "SOR",
+    "HetRatio",
+    "DP_wt", "DP_het", "DP_hom",
+    "GQ_wt", "GQ_het", "GQ_hom",
+    "VAF_het", "VAF_hom",
 ]
 
 def read_vcf(path: str) -> dict[str, list]:
-    """Return {metric: [values]} for a single VCF file."""
+    """Return {metric: [values]} for a single VCF file (plain or bgzipped)."""
     data: dict[str, list] = {m: [] for m in METRICS}
 
-    with open_vcf(path) as fh:
-        for line in fh:
-            if line.startswith("#"):
-                continue
-            parts = line.rstrip("\n").split("\t")
-            rec = extract_record(parts)
-            for m in METRICS:
-                val = rec.get(m)
-                if val is not None:
-                    data[m].append(val)
+    for var in VCF(path):             # cyvcf2 handles plain/gzip transparently
+        rec = extract_record(var)
+        for m in METRICS:
+            val = rec.get(m)
+            if val is not None:
+                data[m].append(val)
 
     return data
 
@@ -252,15 +245,21 @@ def sig_label(p: float) -> str:
 # ---------------------------------------------------------------------------
 
 METRIC_META = {
-    "AC":      ("Allele Count",                           "royalblue"),
-    "AN":      ("Allele Number",                          "steelblue"),
-    "AF":      ("Allele Frequency",                       "seagreen"),
-    "MAF":     ("Minor Allele Frequency",                 "mediumseagreen"),
-    "DP_wt":   ("Read Depth — WT samples (0/0)",          "#e07b54"),
-    "DP_alt":  ("Read Depth — alt-carrying samples",      "tomato"),
-    "GQ_wt":   ("Genotype Quality — WT samples (0/0)",    "#9b82c4"),
-    "GQ_alt":  ("Genotype Quality — alt-carrying samples", "mediumpurple"),
-    "VAF_alt": ("Variant Allele Frequency — alt-carrying samples", "darkorange"),
+    "AC":       ("Allele Count",                                        "royalblue"),
+    "AN":       ("Allele Number",                                       "steelblue"),
+    "AF":       ("Allele Frequency",                                    "seagreen"),
+    "MAF":      ("Minor Allele Frequency",                              "mediumseagreen"),
+    "MQ":       ("RMS Mapping Quality",                                 "darkslategray"),
+    "SOR":      ("Strand Odds Ratio",                                   "firebrick"),
+    "HetRatio": ("Heterozygosity Ratio [HET / (HET + HOM ALT)]",       "goldenrod"),
+    "DP_wt":    ("Read Depth — WT samples (0/0)",                       "#e07b54"),
+    "DP_het":   ("Read Depth — heterozygous samples",                   "tomato"),
+    "DP_hom":   ("Read Depth — homozygous alt samples",                 "darkred"),
+    "GQ_wt":    ("Genotype Quality — WT samples (0/0)",                 "#9b82c4"),
+    "GQ_het":   ("Genotype Quality — heterozygous samples",             "mediumpurple"),
+    "GQ_hom":   ("Genotype Quality — homozygous alt samples",           "purple"),
+    "VAF_het":  ("Variant Allele Frequency — heterozygous samples",     "darkorange"),
+    "VAF_hom":  ("Variant Allele Frequency — homozygous alt samples",   "orangered"),
 }
 
 # Colours for the two groups
@@ -280,7 +279,7 @@ def _stat_box(ax, arr, color):
     ax.text(
         0.03, 0.97, txt,
         transform=ax.transAxes,
-        fontsize=7,
+        fontsize=11,
         verticalalignment="top",
         color=color,
         bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
@@ -322,20 +321,33 @@ def plot_comparison(
 
         # Build violin data list (skip empty arrays)
         parts_data, parts_pos, parts_colors, parts_labels = [], [], [], []
+        violin_positions = (1.15, 1.85)
         if len(arr_a):
             parts_data.append(arr_a)
-            parts_pos.append(1)
+            parts_pos.append(violin_positions[0])
             parts_colors.append(COLOR_A)
             parts_labels.append(label_a)
         if len(arr_b):
             parts_data.append(arr_b)
-            parts_pos.append(2)
+            parts_pos.append(violin_positions[1])
             parts_colors.append(COLOR_B)
             parts_labels.append(label_b)
 
+        # For DP metrics, filter to the 1st–99th percentile before KDE so
+        # the violin shape is not distorted by outliers outside the visible range.
+        if metric.startswith("DP_") and parts_data:
+            _comb = np.concatenate(parts_data)
+            _lo_dp, _hi_dp = np.percentile(_comb, [1, 99])
+            violin_data = []
+            for arr in parts_data:
+                clipped = arr[(arr >= _lo_dp) & (arr <= _hi_dp)]
+                violin_data.append(clipped if len(clipped) > 0 else arr)
+        else:
+            violin_data = parts_data
+
         if parts_data:
             vp = ax.violinplot(
-                parts_data,
+                violin_data,
                 positions=parts_pos,
                 widths=0.6,
                 showmedians=True,
@@ -366,14 +378,27 @@ def plot_comparison(
             p_txt = f"p={p:.2e}" if not np.isnan(p) else "p=n/a"
             ax.set_title(
                 f"{desc}  [{label_sig}  {p_txt}]",
-                fontsize=9, fontweight="bold",
+                fontsize=11, fontweight="bold",
             )
         else:
-            ax.set_title(desc, fontsize=9, fontweight="bold")
+            ax.set_title(desc, fontsize=11, fontweight="bold")
 
-        ax.set_ylabel(metric, fontsize=9)
-        ax.set_xticks(parts_pos)
-        ax.set_xticklabels(parts_labels, fontsize=9)
+        ax.set_ylabel(metric, fontsize=11)
+        ax.set_xticks(violin_positions)
+        ax.set_xticklabels([label_a, label_b], fontsize=11)
+        ax.tick_params(axis="y", labelsize=10)
+        # Mark positions where a dataset has no data for this metric
+        for _nd_arr, _nd_pos, _nd_col in [
+            (arr_a, violin_positions[0], COLOR_A),
+            (arr_b, violin_positions[1], COLOR_B),
+        ]:
+            if not len(_nd_arr):
+                ax.text(
+                    _nd_pos, 0.5, "no data",
+                    transform=ax.get_xaxis_transform(),
+                    ha="center", va="center",
+                    fontsize=9, color=_nd_col, style="italic", alpha=0.7,
+                )
 
         # Stats boxes
         if len(arr_a):
@@ -388,7 +413,7 @@ def plot_comparison(
             ax.text(
                 0.97, 0.97, txt_b,
                 transform=ax.transAxes,
-                fontsize=7,
+                fontsize=11,
                 verticalalignment="top",
                 horizontalalignment="right",
                 color=COLOR_B,
