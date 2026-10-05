@@ -5,8 +5,7 @@ Analyse genotype concordance from a bcftools GCsS file and plot:
   2. concordance_two_panel.png   — ranked discordance overview + labelled outliers
 
 Usage:
-    figure_3_4_gt_quality_disc.py file_gcss.txt file.vcf.gz ./test
-file_gcss.txt : GCsS (Genotype Concordance Summary Statistics) file from bcftools
+    python3 SI_figure_1_outlier_gt.py file_gcss.txt chip.vcf.gz file.vcf.gz ./test
 
 """
 
@@ -47,6 +46,9 @@ def parse_gcss_file(filepath):
                     'rr_discordance': 100 - rr_concordance,
                     'ra_discordance': 100 - ra_concordance,
                     'aa_discordance': 100 - aa_concordance,
+                    'rr_mismatch': int(parts[7]),
+                    'ra_mismatch': int(parts[8]),
+                    'aa_mismatch': int(parts[9]),
                 })
     
     df = pd.DataFrame(data_rows)
@@ -233,16 +235,134 @@ def plot_figures(gcss_df, metrics_df, output_dir='./'):
     plt.close()
     print(f"Saved: concordance_two_panel.png")
 
+def _gt_class(gt_type):
+    """Map cyvcf2 gt_types code to a genotype class label."""
+    return {0: 'RR', 1: 'RA', 3: 'AA'}.get(gt_type, 'Missing')
+
+def build_comparison_df(chip_vcf_file, pipeline_vcf_file, gcss_df):
+    """Compare per-sample genotype classes between the chip (truth) VCF and the pipeline VCF.
+
+    The chip VCF may contain sites absent from the pipeline VCF, so pipeline variants are
+    indexed by (CHROM, POS, REF, ALT) first, and only chip sites with a matching pipeline
+    site are compared.
+    """
+    chip_vcf = cyvcf2.VCF(chip_vcf_file)
+    pipeline_vcf = cyvcf2.VCF(pipeline_vcf_file)
+
+    sample_names = set(gcss_df.loc[~gcss_df['is_outlier'], 'sample'].values)
+    common_samples = [s for s in chip_vcf.samples if s in pipeline_vcf.samples and s in sample_names]
+    chip_idx = {s: chip_vcf.samples.index(s) for s in common_samples}
+    pipeline_idx = {s: pipeline_vcf.samples.index(s) for s in common_samples}
+
+    print("Indexing pipeline VCF variants...")
+    pipeline_lookup = {}
+    for i, var in enumerate(pipeline_vcf, 1):
+        if i % 50000 == 0:
+            print(f"  Indexed {i} variants...")
+        key = (var.CHROM, var.POS, var.REF, tuple(var.ALT))
+        # cyvcf2 reuses internal buffers between iterations, so gt_types must be copied to persist
+        pipeline_lookup[key] = var.gt_types.copy()
+    pipeline_vcf.close()
+
+    rows = []
+    n_matched = 0
+    print("Comparing chip array variants against pipeline VCF...")
+    for i, chip_var in enumerate(chip_vcf, 1):
+        if i % 50000 == 0:
+            print(f"  Processed {i} variants...")
+
+        key = (chip_var.CHROM, chip_var.POS, chip_var.REF, tuple(chip_var.ALT))
+        pipeline_types = pipeline_lookup.get(key)
+        if pipeline_types is None:
+            continue
+        n_matched += 1
+
+        chip_types = chip_var.gt_types
+        for sample in common_samples:
+            chip_class = _gt_class(chip_types[chip_idx[sample]])
+            if chip_class == 'Missing':
+                continue
+            pipeline_class = _gt_class(pipeline_types[pipeline_idx[sample]])
+            # pipeline no-calls are kept (as 'Missing') so they can be reported separately,
+            # but bcftools gtcheck excludes them from its mismatch tally
+            rows.append({
+                'sample': sample,
+                'chip_gt_class': chip_class,
+                'pipeline_gt_class': pipeline_class,
+                'match': chip_class == pipeline_class,
+            })
+
+    chip_vcf.close()
+    print(f"Matched {n_matched} shared variant sites between chip and pipeline VCFs")
+
+    return pd.DataFrame(rows)
+
+def plot_mismatch_composition(comparison_df, gcss_df, output_dir):
+    """Pipeline genotype composition of mismatches within each chip genotype class.
+
+    The RR/RA/AA destination bars only include pipeline no-calls excluded, so their
+    totals match the bcftools-reported mismatch totals from the GCsS file exactly.
+    The 'Missing' bar is reported separately (chip called, pipeline no-call) and is not
+    part of that bcftools-matching total.
+    """
+    print("  Mismatch composition by genotype class...")
+
+    class_order = ['RR', 'RA', 'AA']
+    class_labels = {'RR': 'RR', 'RA': 'RA', 'AA': 'AA'}
+    colors = {'RR': '#4C72B0', 'RA': '#DD8452', 'AA': '#d62728', 'Missing': '#7f7f7f'}
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    for ax, gt_class in zip(axes, class_order):
+        real_destinations = [dest for dest in class_order if dest != gt_class]
+        class_data = comparison_df[comparison_df['chip_gt_class'] == gt_class]
+        mismatch_data = class_data[(~class_data['match']) & (class_data['pipeline_gt_class'] != 'Missing')]
+        counts = mismatch_data['pipeline_gt_class'].value_counts()
+        real_values = [int(counts.get(dest, 0)) for dest in real_destinations]
+        total = sum(real_values)
+
+        missing_count = int((class_data['pipeline_gt_class'] == 'Missing').sum())
+
+        destinations = real_destinations + ['Missing']
+        values = real_values + [missing_count]
+        grand_total = total + missing_count
+
+        bars = ax.bar(destinations, values, color=[colors[dest] for dest in destinations],
+                      alpha=0.8, edgecolor='black', linewidth=1.5)
+        for bar, value in zip(bars, values):
+            pct = value / grand_total * 100 if grand_total else 0
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f'{value:,}\n({pct:.1f}%)', ha='center', va='bottom', fontsize=10)
+
+        ax.set_ylim(0, max(values) * 1.5 if values else 1)  # headroom to avoid label/border overlap
+
+        ax.text(
+            0.03, 0.97, f'n (mismatches) = {total:,}\nn (missing) = {missing_count:,}', transform=ax.transAxes,
+            ha='left', va='top', fontsize=11, fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='black', alpha=0.8),
+        )
+        ax.set_ylabel('Calls', fontsize=11, fontweight='bold')
+        ax.set_title(f'SNP-array {class_labels[gt_class]} mismatches', fontsize=12, fontweight='bold')
+        ax.grid(True, alpha=0.3, axis='y')
+
+    fig.suptitle('Genotype composition of SNP-array mismatches', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/gt_mismatch_composition.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: gt_mismatch_composition.png")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Plot genotype discordance figures from a GATK GCsS file.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog='Example:\n  figure_3_gt_disc.py gcss_file.txt variants.vcf.gz ./output/'
+        epilog='Example:\n  SI_figure_1_a_b_gt_quality.py gcss_file.txt chip.vcf.gz variants.vcf.gz ./output/'
     )
     parser.add_argument('gcss_file',
                         help='GCsS (Genotype Concordance Summary Statistics) file from GATK')
+    parser.add_argument('chip_vcf_file',
+                        help='SNP-array (chip) VCF file used as ground truth for genotype comparison')
     parser.add_argument('vcf_file', nargs='?', default='0003.vcf.gz',
-                        help='VCF file for quality metrics (default: 0003.vcf.gz)')
+                        help='Pipeline VCF file for quality metrics and genotype comparison (default: 0003.vcf.gz)')
     parser.add_argument('output_dir', nargs='?', default='./',
                         help='Output directory (default: current directory)')
     args = parser.parse_args()
@@ -250,3 +370,6 @@ if __name__ == '__main__':
     gcss_df    = parse_gcss_file(args.gcss_file)
     metrics_df = extract_quality_metrics(args.vcf_file, gcss_df)
     plot_figures(gcss_df, metrics_df, args.output_dir)
+
+    comparison_df = build_comparison_df(args.chip_vcf_file, args.vcf_file, gcss_df)
+    plot_mismatch_composition(comparison_df, gcss_df, args.output_dir)

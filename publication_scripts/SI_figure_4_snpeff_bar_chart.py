@@ -10,7 +10,7 @@ variants, since one variant can carry multiple annotations). Counts
 are derived from SnpEff html output
 
 Usage:
-    figure_5_snpeff_bar_chart.py -o test
+    python3 SI_figure_4_snpeff_bar_chart.py -o test
 """
 
 # ==================== IMPORTS ================================================#

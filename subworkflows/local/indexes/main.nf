@@ -53,7 +53,7 @@ workflow INDEXES {
             ch_bwa_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_bwa_index])
         } else {
             BWAMEM2_INDEX(ch_fasta_ready)
-            ch_bwa_index = BWAMEM2_INDEX.out.index
+            ch_bwa_index = BWAMEM2_INDEX.out.index.first()
             ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
         }
 
@@ -62,7 +62,7 @@ workflow INDEXES {
             ch_faidx_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_samtools_faidx])
         } else {
             SAMTOOLS_FAIDX(ch_fasta_ready.map { meta, fasta_ -> [meta, fasta_, []] }, false)
-            ch_faidx_index = SAMTOOLS_FAIDX.out.fai
+            ch_faidx_index = SAMTOOLS_FAIDX.out.fai.first()
             ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
         }
 
@@ -71,7 +71,7 @@ workflow INDEXES {
             ch_dict_index = Channel.value([[id:file(params.ref_fasta).baseName], params.ref_samtools_dict])
         } else {
             SAMTOOLS_DICT(ch_fasta_ready)
-            ch_dict_index = SAMTOOLS_DICT.out.dict
+            ch_dict_index = SAMTOOLS_DICT.out.dict.first()
             ch_versions = ch_versions.mix(SAMTOOLS_DICT.out.versions)
         }
 

@@ -1,0 +1,542 @@
+#!/usr/bin/env Rscript
+#
+# panel_A.R — Presence/absence heatmap of AA substitutions (Panel A)
+#
+# Required packages:
+#   install.packages(c("optparse", "vcfR", "dplyr", "tibble", "stringr", "purrr"))
+#   BiocManager::install(c("ComplexHeatmap", "circlize"))
+#
+# Usage:
+#   Rscript panel_A.R \
+#     --vcf     variants.annotated.vcf \
+#     --gene    GENE1 \
+#     --phenotype phenotype_positive_samples.txt \
+#     [--causal  p.Arg175His] \
+#     [--output  panel_A.pdf]
+
+suppressPackageStartupMessages({
+  library(optparse)
+  library(vcfR)
+  library(ComplexHeatmap)
+  library(circlize)
+  library(dplyr)
+  library(tibble)
+  library(stringr)
+  library(purrr)
+  library(grid)
+})
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. Arguments
+# ══════════════════════════════════════════════════════════════════════════════
+
+option_list <- list(
+  make_option(c("--vcf"), type = "character", metavar = "FILE",
+    help = "Annotated VCF file — VEP (CSQ) or SnpEff (ANN) [required]"),
+  make_option(c("--gene"), type = "character", metavar = "SYMBOL",
+    help = "Gene symbol to extract AA substitutions for [required]"),
+  make_option(c("--phenotype"), type = "character", metavar = "FILE",
+    help = "Text file of phenotype-positive sample IDs, one per line [required]"),
+  make_option(c("--causal"), type = "character", default = NULL,
+    metavar = "AA",
+    help = "AA substitution to highlight as causal, e.g. p.Arg175His [optional]"),
+  make_option(c("--output"), type = "character", default = "panel_A.pdf",
+    help = "Output file (.pdf or .png) [default: panel_A.pdf]"),
+  make_option(c("--width"), type = "double", default = 10,
+    help = "Plot width in inches [default: 10]"),
+  make_option(c("--height"), type = "double", default = NULL,
+    help = "Plot height in inches [default: auto-scaled]"),
+  make_option(c("--annotate-samples"), type = "character", default = NULL,
+    metavar = "SAMPLES",
+    help = "Comma-separated sample IDs to display as diagonal labels [optional]"),
+  make_option(c("--annotate-labels"), type = "character", default = NULL,
+    metavar = "LABELS",
+    help = paste(
+    "Comma-separated display labels for --annotate-samples,",
+    "in the same order. Defaults to sample IDs if not specified [optional]"
+    ))
+)
+
+opt <- parse_args(OptionParser(
+  option_list  = option_list,
+  usage        = "Rscript %prog --vcf FILE --gene GENE --phenotype FILE [options]",
+  description  = paste(
+    "Panel A: presence/absence heatmap of amino acid substitutions",
+    "for a target gene, stratified by binary phenotype."
+  )
+))
+
+# Validate required args and file paths
+for (arg in c("vcf", "gene", "phenotype")) {
+  if (is.null(opt[[arg]])) {
+    stop(sprintf("--%s is required. Use --help for usage.", arg), call. = FALSE)
+  }
+}
+for (f in c(opt$vcf, opt$phenotype)) {
+  if (!file.exists(f)) stop(sprintf("File not found: %s", f), call. = FALSE)
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. Load VCF and phenotype
+# ══════════════════════════════════════════════════════════════════════════════
+
+message("[1/5] Reading VCF: ", opt$vcf)
+vcf         <- read.vcfR(opt$vcf, verbose = FALSE)
+all_samples <- colnames(extract.gt(vcf))
+message(sprintf("      %d variants | %d samples", nrow(vcf@fix), length(all_samples)))
+
+message("[2/5] Reading phenotype file: ", opt$phenotype)
+pheno_pos <- readLines(opt$phenotype) |>
+  trimws() |>
+  (\(x) x[nzchar(x)])()
+
+missing <- setdiff(pheno_pos, all_samples)
+if (length(missing)) {
+  warning(sprintf(
+    "%d phenotype-positive sample(s) not found in VCF and will be ignored: %s%s",
+    length(missing),
+    paste(head(missing, 3), collapse = ", "),
+    if (length(missing) > 3) ", ..." else ""
+  ))
+  pheno_pos <- intersect(pheno_pos, all_samples)
+}
+
+pheno_neg <- setdiff(all_samples, pheno_pos)
+message(sprintf(
+  "      Phenotype+: %d  |  Phenotype−: %d",
+  length(pheno_pos), length(pheno_neg)
+))
+
+annotate_samples <- if (!is.null(opt[["annotate-samples"]])) {
+  trimws(str_split(opt[["annotate-samples"]], ",")[[1]])
+} else {
+  character(0)
+}
+
+annotate_samples <- if (!is.null(opt[["annotate-samples"]])) {
+  trimws(str_split(opt[["annotate-samples"]], ",")[[1]])
+} else {
+  character(0)
+}
+
+annotate_labels <- if (!is.null(opt[["annotate-labels"]])) {
+  trimws(str_split(opt[["annotate-labels"]], ",")[[1]])
+} else {
+  annotate_samples  # fall back to sample IDs
+}
+
+if (length(annotate_labels) != length(annotate_samples)) {
+  stop(
+    "--annotate-labels and --annotate-samples must have the same number ",
+    "of comma-separated entries.",
+    call. = FALSE
+  )
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. Detect annotation format and extract AA changes
+# ══════════════════════════════════════════════════════════════════════════════
+
+message("[3/5] Extracting AA substitutions for gene: ", opt$gene)
+
+meta_str  <- paste(vcf@meta, collapse = "\n")
+anno_tool <- if (str_detect(meta_str, "ID=CSQ")) {
+  "vep"
+} else if (str_detect(meta_str, "ID=ANN")) {
+  "snpeff"
+} else {
+  stop(
+    "No VEP (CSQ) or SnpEff (ANN) annotation found in VCF header.",
+    call. = FALSE
+  )
+}
+message("      Detected annotation: ", toupper(anno_tool))
+
+info_vec <- vcf@fix[, "INFO"]
+
+if (anno_tool == "vep") {
+  csq_header <- str_subset(vcf@meta, "ID=CSQ")
+  if (!length(csq_header)) stop("CSQ INFO header line not found.", call. = FALSE)
+  
+  csq_fields <- str_match(csq_header[1], "Format: ([^\"]+)\"")[, 2] |>
+    str_split("\\|") |>
+    unlist()
+  
+  sym_i    <- which(csq_fields == "SYMBOL")
+  hgvsp_i  <- which(csq_fields == "HGVSp")
+  impact_i <- which(csq_fields == "IMPACT")
+  
+  if (!length(sym_i))   stop("SYMBOL not found in CSQ format.", call. = FALSE)
+  if (!length(hgvsp_i)) stop("HGVSp not found in CSQ format.", call. = FALSE)
+  if (!length(impact_i)) {
+    warning("IMPACT not found in CSQ format - impact colouring will be skipped.")
+    impact_i <- NA_integer_
+  }
+  
+  extract_variant_info <- function(info_str) {
+    block <- str_match(info_str, "CSQ=([^;\t]+)")[, 2]
+    if (is.na(block)) return(list(aa = NA_character_, impact = NA_character_))
+    for (tx in str_split(block, ",")[[1]]) {
+      f     <- str_split(tx, "\\|")[[1]]
+      max_i <- max(c(sym_i, hgvsp_i, impact_i), na.rm = TRUE)
+      if (length(f) < max_i) next
+      if (f[sym_i] == opt$gene && nzchar(f[hgvsp_i])) {
+        return(list(
+          aa     = str_extract(f[hgvsp_i], "p\\..+"),
+          impact = if (!is.na(impact_i)) f[impact_i] else NA_character_
+        ))
+      }
+    }
+    list(aa = NA_character_, impact = NA_character_)
+  }
+  
+} else {
+  # SnpEff ANN: field 3 = impact, field 4 = gene, field 11 = HGVSp (1-indexed)
+  extract_variant_info <- function(info_str) {
+    block <- str_match(info_str, "ANN=([^;\t]+)")[, 2]
+    if (is.na(block)) return(list(aa = NA_character_, impact = NA_character_))
+    for (tx in str_split(block, ",")[[1]]) {
+      f <- str_split(tx, "\\|")[[1]]
+      if (length(f) < 11) next
+      if (f[4] == opt$gene && nzchar(f[11])) {
+        return(list(aa = f[11], impact = f[3]))
+      }
+    }
+    list(aa = NA_character_, impact = NA_character_)
+  }
+}
+
+variant_info <- map(info_vec, extract_variant_info)
+aa_changes   <- map_chr(variant_info, "aa")
+impacts_all  <- map_chr(variant_info, "impact")
+gene_mask    <- !is.na(aa_changes)
+n_found      <- sum(gene_mask)
+
+message(sprintf("      Found %d variant(s) with AA changes in %s", n_found, opt$gene))
+
+if (n_found == 0L) {
+  stop(sprintf(
+    "No AA substitutions found for gene '%s'. Check symbol is case-sensitive.",
+    opt$gene
+  ), call. = FALSE)
+}
+
+# Build AA -> impact lookup (first occurrence per unique AA change)
+aa_impact_map <- data.frame(
+  aa     = aa_changes[gene_mask],
+  impact = impacts_all[gene_mask],
+  stringsAsFactors = FALSE
+) |>
+  filter(!is.na(aa)) |>
+  distinct(aa, .keep_all = TRUE) |>
+  (\(d) setNames(d$impact, d$aa))()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 4. Build presence/absence matrix
+# ══════════════════════════════════════════════════════════════════════════════
+
+message("[4/5] Building presence/absence matrix")
+
+gt_raw          <- extract.gt(vcf[gene_mask, ], element = "GT")
+rownames(gt_raw) <- aa_changes[gene_mask]
+
+# Convert genotype strings to binary (0 = absent, 1 = present, NA = missing)
+# Handles both unphased (0/1) and phased (0|1) genotypes; any non-ref
+# non-missing call (0/1, 1/1, 1/2, etc.) is treated as present
+gt_flat  <- c(gt_raw)
+bin_flat <- case_when(
+  gt_flat %in% c("0/0", "0|0")                ~ 0L,
+  is.na(gt_flat) | gt_flat %in% c("./.", ".|.") ~ NA_integer_,
+  TRUE                                          ~ 1L
+)
+bin_mat <- matrix(
+  bin_flat,
+  nrow     = nrow(gt_raw),
+  ncol     = ncol(gt_raw),
+  dimnames = dimnames(gt_raw)
+)
+
+# Collapse rows with identical AA labels (same substitution, different transcripts)
+mat <- as.data.frame(bin_mat) |>
+  rownames_to_column("aa") |>
+  group_by(aa) |>
+  summarise(
+    across(
+      everything(),
+      ~ if (all(is.na(.x))) NA_integer_ else as.integer(max(.x, na.rm = TRUE))
+    ),
+    .groups = "drop"
+  ) |>
+  column_to_rownames("aa") |>
+  as.matrix()
+
+storage.mode(mat) <- "integer"
+
+# Order columns: phenotype+ first, then phenotype-
+col_order   <- c(intersect(pheno_pos, colnames(mat)),
+                 intersect(pheno_neg, colnames(mat)))
+mat         <- mat[, col_order, drop = FALSE]
+pheno_pos_f <- intersect(pheno_pos, colnames(mat))
+pheno_neg_f <- intersect(pheno_neg, colnames(mat))
+
+# Count ALT-carrying samples per row (must be on integer matrix)
+alt_counts <- setNames(
+  rowSums(mat == 1L, na.rm = TRUE),
+  rownames(mat)
+)
+
+# Order rows by amino acid position ascending (e.g. p.Arg175His -> 175)
+aa_pos <- as.integer(str_extract(rownames(mat), "\\d+"))
+mat    <- mat[order(aa_pos, na.last = TRUE), , drop = FALSE]
+
+message(sprintf(
+  "      Final matrix: %d substitutions x %d samples",
+  nrow(mat), ncol(mat)
+))
+
+if (!is.null(opt$causal) && !opt$causal %in% rownames(mat)) {
+  warning(sprintf(
+    "Causal substitution '%s' not found - highlight skipped.", opt$causal
+  ))
+  opt$causal <- NULL
+}
+
+# Character conversion LAST after all ordering
+mat <- apply(mat, c(1, 2), function(x) {
+  if (is.na(x)) NA_character_
+  else if (x == 1L) "Present"
+  else "Absent"
+})
+
+# Order columns: phenotype+ first, then phenotype−
+col_order   <- c(intersect(pheno_pos, colnames(mat)),
+                 intersect(pheno_neg, colnames(mat)))
+mat         <- mat[, col_order, drop = FALSE]
+pheno_pos_f <- intersect(pheno_pos, colnames(mat))
+pheno_neg_f <- intersect(pheno_neg, colnames(mat))
+
+# Order rows by enrichment in phenotype+ group (descending)
+enrich <- apply(mat, 1, function(r) {
+  mean(r[pheno_pos_f], na.rm = TRUE) - mean(r[pheno_neg_f], na.rm = TRUE)
+})
+mat <- mat[order(enrich, decreasing = TRUE), , drop = FALSE]
+
+message(sprintf(
+  "      Final matrix: %d substitutions × %d samples",
+  nrow(mat), ncol(mat)
+))
+
+# Validate --causal if supplied
+if (!is.null(opt$causal) && !opt$causal %in% rownames(mat)) {
+  warning(sprintf(
+    "Causal substitution '%s' not found in extracted variants — highlight skipped.",
+    opt$causal
+  ))
+  opt$causal <- NULL
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5. Draw heatmap
+# ══════════════════════════════════════════════════════════════════════════════
+
+message("[5/5] Drawing heatmap")
+
+# Phenotype annotation bar (legend suppressed)
+pheno_vec <- factor(
+  ifelse(colnames(mat) %in% pheno_pos_f, "Phenotype+", "Phenotype-"),
+  levels = c("Phenotype+", "Phenotype-")
+)
+#pheno_colors <- c("Phenotype+" = "#de5252", "Phenotype-" = "#819cc7")
+pheno_colors <- c("Phenotype+" = "#819cc7", "Phenotype-" = "#819cc7")
+
+#21314b
+#819cc7
+
+top_anno <- HeatmapAnnotation(
+  Phenotype            = pheno_vec,
+  col                  = list(Phenotype = pheno_colors),
+  annotation_name_side = "left",
+  annotation_name_gp   = gpar(fontsize = 9, fontface = "plain"),
+  annotation_name_rot  = 45,
+  simple_anno_size     = unit(2, "mm"),
+  show_legend          = FALSE,
+  show_annotation_name = FALSE
+)
+
+if (length(annotate_samples) > 0) {
+  missing_anno <- setdiff(annotate_samples, colnames(mat))
+  if (length(missing_anno)) {
+    warning(sprintf(
+      "Annotated sample(s) not found in matrix and will be skipped: %s",
+      paste(missing_anno, collapse = ", ")
+    ))
+    keep_idx         <- annotate_samples %in% colnames(mat)
+    annotate_samples <- annotate_samples[keep_idx]
+    annotate_labels  <- annotate_labels[keep_idx]
+  }
+  
+  # Map sample IDs to display labels
+  label_map <- setNames(annotate_labels, annotate_samples)
+  
+  sample_labels <- ifelse(
+    colnames(mat) %in% annotate_samples,
+    label_map[colnames(mat)],
+    ""
+  )
+  
+  bottom_anno <- HeatmapAnnotation(
+    samples = anno_text(
+      sample_labels,
+      rot      = 90,
+      just     = "right",
+      gp       = gpar(fontsize = 7, col = "black", fontface = "plain"),
+      location = unit(0.7, "npc")
+    ),
+    show_annotation_name = FALSE
+  )
+} else {
+  bottom_anno <- NULL
+}
+
+# Row label styling: colored by impact, bold if causal
+rn        <- rownames(mat)
+is_causal <- if (!is.null(opt$causal)) rn == opt$causal else rep(FALSE, length(rn))
+
+impact_label_colors <- c(
+  "HIGH"     = "#D62728",
+  "MODERATE" = "#FF7F0E",
+  "LOW"      = "#2CA02C",
+  "MODIFIER" = "#7F7F7F",
+  "UNKNOWN"  = "black"
+)
+
+row_impacts <- aa_impact_map[rn]
+row_impacts[is.na(row_impacts)] <- "UNKNOWN"
+
+rn_display <- ifelse(is_causal, paste0("", rn), rn)
+rn_display <- paste0(rn_display,"")
+
+row_gp <- gpar(
+  fontsize = 10,
+  fontface = ifelse(row_impacts == "MODERATE", "bold", "plain"),
+  col      = ifelse(is_causal, "#b62122", "black")
+)
+
+# Right annotation: ALT-carrying sample counts
+alt_counts_ordered <- alt_counts[rn]
+
+right_anno <- rowAnnotation(
+  foo = anno_text(
+    paste0("n = ", alt_counts_ordered),
+    gp       = gpar(fontsize = 8),
+    just     = "left",
+    rot      = 45,
+    location = unit(1, "mm")
+  ),
+  show_annotation_name = FALSE,
+  width                = unit(2, "cm")
+)
+
+left_anno <- rowAnnotation(
+  labels = anno_text(
+    rn_display,
+    rot      = 45,
+    just     = c("right", "center"),
+    gp       = row_gp,
+    location = unit(0.9, "npc")
+  ),
+  show_annotation_name = FALSE
+)
+
+# Heatmap
+ht <- Heatmap(
+  mat,
+  name   = "Variant",
+  col    = c("Present" = "#eab597", "Absent" = "#E8E8E8"),
+  na_col = "#BDBDBD",
+  
+  cluster_rows    = FALSE,
+  cluster_columns = FALSE,
+  
+  column_split    = pheno_vec,
+  column_gap      = unit(3, "mm"),
+  column_title    = c("Seedless", "Seeded"),
+  column_title_rot = 90,
+  column_title_gp = gpar(
+    fontsize = 9,
+    fontface = "bold",
+    col      = c("#819cc7", "#819cc7")
+  ),
+  
+  show_column_dend  = FALSE,
+  show_row_dend     = FALSE,
+  show_column_names = FALSE,
+  
+  left_annotation = left_anno,
+  show_row_names  = FALSE,
+  
+  top_annotation      = top_anno,
+  right_annotation    = right_anno,
+  show_heatmap_legend = FALSE,
+  
+  rect_gp = gpar(col = "white", lwd = 1.2),
+  border  = TRUE,
+  
+  #width  = unit(20, "cm"),
+  width = unit(ncol(mat) * 0.125, "cm"),
+  height = unit(nrow(mat) * 0.6, "cm"),
+  bottom_annotation = bottom_anno
+)
+
+# Custom legends (right side)
+genotype_legend <- Legend(
+  title          = "Genotype",
+  labels         = c("ALT allele(s)", "Homozygous REF", "Missing"),
+  legend_gp      = gpar(fill = c("#eab597", "#E8E8E8", "#BDBDBD")),
+  direction      = "vertical",
+  title_position = "topleft",
+  title_gp       = gpar(fontsize = 9, fontface = "bold")
+)
+
+present_impacts <- unique(row_impacts[row_impacts != "UNKNOWN"])
+impact_legend <- Legend(
+  title          = "Impact",
+  labels         = present_impacts,
+  legend_gp      = gpar(fill = impact_label_colors[present_impacts]),
+  direction      = "horizontal",
+  nrow           = 1,
+  title_position = "topleft",
+  title_gp       = gpar(fontsize = 9, fontface = "bold")
+)
+
+# Save output
+# Draw to null device first to measure actual figure dimensions
+pdf(NULL)
+ht_drawn <- draw(
+  ht,
+  annotation_legend_side = "right",
+  annotation_legend_list = list(genotype_legend),
+  padding                = unit(c(5, 5, 10, 5), "mm")
+)
+plot_w <- convertX(ComplexHeatmap:::width(ht_drawn),  "inches", valueOnly = TRUE)
+plot_h <- convertY(ComplexHeatmap:::height(ht_drawn), "inches", valueOnly = TRUE)
+dev.off()
+
+# Open real device with measured dimensions
+ext <- tolower(tools::file_ext(opt$output))
+if (ext == "png") {
+  png(opt$output,
+      width  = round(plot_w * 300),
+      height = round(plot_h * 1000),
+      res    = 300)
+} else {
+  pdf(opt$output, width = plot_w, height = plot_h)
+}
+
+draw(
+  ht,
+  annotation_legend_side = "right",
+  annotation_legend_list = list(genotype_legend),
+  padding                = unit(c(5, 5, 10, 5), "mm")
+)
+dev.off()
