@@ -8,7 +8,7 @@ include { GENOZIP_REFERENCE  } from '../../../modules/local/genozip/reference/ma
 
 //TODO: @abhi18av, need to actually make use of these
 include { UNTAR as UNTAR_BWA_INDEX } from '../../../modules/nf-core/untar/main'
-include { UNTARFILES           } from '../../../modules/nf-core/untarfiles/main'
+// include { UNTARFILES           } from '../../../modules/nf-core/untarfiles/main'
 
 workflow INDEXES {
 
